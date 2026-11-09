@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2937">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bestellungen">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Bestellungen</title>
+<style>
+:root{
+  --bg:#f2f3f6; --karte:#fff; --text:#1b1e23; --leise:#6b7280; --linie:#e4e6ea;
+  --akzent:#1f2937; --link:#1f2937; --ok:#2b8a3e; --rot:#c92a2a; --warn:#a85400; --warn-bg:#fff4e6;
+  --r:14px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#111316; --karte:#1c1f24; --text:#eceef1; --leise:#9aa1ab; --linie:#2e3239;
+         --link:#9db4ff; --warn:#f0a040; --warn-bg:#33270f; --ok:#51cf66; --rot:#ff8787; }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:calc(env(safe-area-inset-bottom) + 24px)}
+body.modal{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+[hidden]{display:none !important}
+
+/* ---------- Kopfzeile ---------- */
+#kopf{position:sticky;top:0;z-index:20;background:var(--akzent);color:#fff;
+  padding-top:env(safe-area-inset-top);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.kopf-zeile{display:flex;align-items:center;gap:6px;min-height:54px;padding:0 10px}
+.kopf-titel{flex:1;min-width:0;font-weight:700;font-size:19px;line-height:1.15;padding-left:4px}
+.kopf-unter{font-size:12.5px;font-weight:400;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rund{width:40px;height:40px;flex:none;border-radius:50%;border:0;background:rgba(255,255,255,.17);
+  color:#fff;font-size:20px;display:grid;place-items:center}
+.rund.zurueck{font-size:30px;line-height:1;padding-bottom:4px}
+.reiter{display:flex;padding:0 6px}
+.reiter a{flex:1;text-align:center;color:#fff;opacity:.72;text-decoration:none;padding:9px 2px 10px;
+  font-weight:600;font-size:15px;border-bottom:3px solid transparent;white-space:nowrap}
+.reiter a.aktiv{opacity:1;border-bottom-color:#fff}
+.reiter .marke{background:#fff;color:var(--akzent)}
+
+main{max-width:760px;margin:0 auto}
+
+/* ---------- Allgemein ---------- */
+.marke{display:inline-block;min-width:22px;text-align:center;background:var(--akzent);color:#fff;
+  border-radius:999px;padding:1px 7px;font-size:12.5px;font-weight:700;line-height:1.5}
+.karte{background:var(--karte);border-radius:var(--r);margin:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden}
+.karte-inhalt{padding:14px}
+.karte h3{margin:0;padding:14px 14px 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--leise)}
+.leise{color:var(--leise)}
+.klein{font-size:13.5px}
+.leer{text-align:center;color:var(--leise);padding:22px 16px;margin:0}
+.link{background:none;border:0;padding:6px 4px;color:var(--link);font-weight:600}
+.link.rot{color:var(--rot)}
+.knopf{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;
+  border-radius:12px;border:1px solid var(--linie);background:var(--karte);font-weight:600;
+  text-decoration:none;padding:10px 14px}
+a.knopf{color:var(--text)}
+.knopf.haupt{background:var(--akzent);border-color:var(--akzent);color:#fff}
+.knopf.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.knopf.aktiv{background:var(--akzent);border-color:var(--akzent);color:#fff}
+
+/* ---------- Startseite / Kacheln ---------- */
+.start-text{margin:18px 16px 4px;color:var(--leise);font-size:15px}
+.kacheln{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:12px 12px 4px}
+.kachel{display:flex;flex-direction:column;padding:0;border:0;border-radius:18px;overflow:hidden;text-align:left;
+  background:var(--karte);box-shadow:0 1px 3px rgba(0,0,0,.08),0 6px 18px rgba(0,0,0,.05)}
+.kachel:active{transform:scale(.985)}
+.band{display:block;height:7px;background:linear-gradient(90deg,var(--f1),var(--f2))}
+.k-inhalt{display:flex;align-items:center;gap:14px;padding:16px}
+.monogramm{width:58px;height:58px;flex:none;border-radius:16px;background:var(--f1);color:#fff;
+  font-weight:800;font-size:28px;display:grid;place-items:center}
+.k-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.k-name{font-weight:700;font-size:19px}
+.k-unter{color:var(--leise);font-size:14px}
+.k-info{color:var(--leise);font-size:13px;margin-top:4px}
+.k-marke{background:var(--f1);color:#fff;border-radius:999px;font-weight:700;font-size:14px;padding:3px 10px}
+.k-pfeil{font-size:26px;color:var(--leise)}
+.fuss{display:block;margin:22px auto 0;background:none;border:0;color:var(--leise);font-size:13.5px;padding:8px}
+
+/* ---------- Produkte ---------- */
+.werkzeug{display:flex;gap:8px;padding:12px 12px 0;align-items:center}
+.werkzeug input[type=search]{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid var(--linie);
+  background:var(--karte);padding:0 12px;font-size:16px}
+.werkzeug .knopf{width:auto;min-height:44px;padding:0 14px}
+.hinweiszeile{padding:8px 16px 0;font-size:12.5px;color:var(--leise)}
+.info-box{margin:10px 12px 0;padding:10px 12px;border-radius:12px;background:var(--karte);border:1px dashed var(--akzent);font-size:14px}
+.liste-kopf{display:flex;justify-content:flex-end;padding:2px 10px 0}
+.kat{background:var(--karte);border-radius:var(--r);margin:8px 12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.kat-kopf{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border:0;background:none;text-align:left;font-weight:650;font-size:16.5px}
+.kat-kopf .pfeil{display:inline-block;transition:transform .18s;color:var(--leise);font-size:20px;width:12px}
+.kat.offen .kat-kopf .pfeil{transform:rotate(90deg)}
+.kat-name{flex:1}
+.zahl{font-size:13px;color:var(--leise);font-weight:500}
+.kat:not(.offen) .kat-inhalt{display:none}
+.kat-alle{display:flex;justify-content:space-between;padding:0 10px 6px;border-top:1px solid var(--linie)}
+.g-name{padding:12px 14px 0;font-weight:600;border-top:1px solid var(--linie)}
+.art{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 14px;border-top:1px solid var(--linie)}
+.art.variante{border-top:0;padding-top:6px;padding-left:26px}
+.gruppe .art.variante + .art.variante{border-top:1px dashed var(--linie)}
+.art.hat-menge{background:rgba(127,127,127,.10);background:color-mix(in srgb,var(--akzent) 11%,var(--karte))}
+.art.aus .art-text{opacity:.45}
+.art-text{flex:1;min-width:0}
+.a-name{font-weight:600}
+.info{font-size:13.5px;color:var(--leise)}
+.preis{font-size:13.5px}
+.warn{font-size:12.5px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:2px 6px;margin-top:3px;display:inline-block}
+.aus-label{font-size:12px;color:var(--leise);font-style:italic}
+.stepper{display:flex;align-items:center;flex:none;border:1px solid var(--linie);border-radius:12px;overflow:hidden;background:var(--karte)}
+.stepper button{width:40px;height:42px;border:0;background:transparent;font-size:23px;line-height:1;color:var(--link)}
+.stepper input{width:42px;height:42px;border:0;border-left:1px solid var(--linie);border-right:1px solid var(--linie);
+  text-align:center;font-size:17px;font-weight:700;background:transparent;-moz-appearance:textfield;appearance:textfield;padding:0}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.schalter{position:relative;flex:none;width:52px;height:32px}
+.schalter input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.schalter span{position:absolute;inset:0;border-radius:999px;background:#c5c9d0;transition:background .15s}
+.schalter span::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.schalter input:checked + span{background:var(--ok)}
+.schalter input:checked + span::after{transform:translateX(20px)}
+
+/* ---------- Bestellzettel ---------- */
+.klapp-kopf{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border:0;background:none;text-align:left;font-weight:650}
+.klapp-kopf .pfeil{display:inline-block;transition:transform .18s;color:var(--leise);font-size:20px;width:12px}
+.klapp.offen > .klapp-kopf .pfeil{transform:rotate(90deg)}
+.klapp-kopf .sub{display:block;font-weight:400;font-size:13px;color:var(--leise)}
+.klapp:not(.offen) > .klapp-inhalt{display:none}
+.klapp-inhalt{padding:0 14px 14px}
+.feld{display:block;margin-top:10px}
+.feld > span{display:block;font-size:13px;color:var(--leise);margin-bottom:3px}
+.feld input,.feld textarea,.feld select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--linie);
+  background:var(--bg);padding:9px 11px;font-size:16px}
+.feld textarea{min-height:64px;resize:vertical}
+.pos{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 14px;border-top:1px solid var(--linie)}
+.pos:first-child{border-top:0}
+.summe{display:flex;justify-content:space-between;align-items:baseline;padding:13px 14px;border-top:2px solid var(--linie);font-weight:700;font-size:17px}
+.summe small{display:block;font-weight:400;font-size:12px;color:var(--leise)}
+.aktionen{display:grid;gap:10px;padding:0 12px}
+.hist{padding:10px 0;border-top:1px solid var(--linie)}
+.hist:first-child{border-top:0}
+.hist ul{margin:4px 0;padding-left:20px;font-size:14px}
+.hist-akt{display:flex;justify-content:space-between}
+
+.preisfeld{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13.5px;margin-top:4px}
+.preisfeld input{width:92px;height:38px;border-radius:9px;border:1px solid var(--linie);background:var(--bg);
+  padding:0 8px;font-size:16px;text-align:right}
+.leiste{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:15;max-width:736px;margin:0 auto;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--akzent);color:#fff;text-decoration:none;
+  border-radius:14px;padding:10px 16px;box-shadow:0 6px 20px rgba(0,0,0,.28)}
+.leiste small{display:block;font-size:12.5px;opacity:.92}
+.leiste.ok small{font-weight:700}
+.leiste-ziel{font-weight:700;white-space:nowrap}
+#leisteBox:not(:empty){height:84px}
+.mindest{padding:0 14px 14px;font-size:14.5px}
+.mindest .balken{height:8px;border-radius:99px;background:var(--linie);overflow:hidden;margin-bottom:6px}
+.mindest .balken span{display:block;height:100%;background:#e8590c;border-radius:99px}
+.mindest.erreicht{color:var(--ok);font-weight:700}
+.mindest.erreicht .balken span{background:var(--ok)}
+.klein-aktionen{display:flex;justify-content:center;gap:18px}
+.wege{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.weg{position:relative}
+.weg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.weg span{display:block;text-align:center;border:1px solid var(--linie);border-radius:12px;padding:8px 2px;font-size:14px;line-height:1.5;background:var(--bg)}
+.weg input:checked + span{border-color:var(--akzent);background:var(--akzent);color:#fff;font-weight:700}
+details.hist{padding:2px 0;border-top:1px solid var(--linie)}
+details.hist:first-child{border-top:0}
+details.hist summary{padding:10px 0 10px 22px;cursor:pointer;list-style:none;position:relative}
+details.hist summary::-webkit-details-marker{display:none}
+details.hist summary::before{content:"›";position:absolute;left:4px;top:8px;font-size:20px;color:var(--leise);transition:transform .18s}
+details.hist[open] summary::before{transform:rotate(90deg)}
+.hist-sub{display:block;font-size:13px;color:var(--leise);font-weight:400}
+.notiz{font-size:14px;background:var(--bg);border-radius:8px;padding:6px 8px;margin:2px 0 6px}
+
+.sync-zeile{display:block;margin:18px auto 0;background:var(--karte);border:1px solid var(--linie);border-radius:999px;
+  padding:8px 16px;font-size:14px;color:var(--text);max-width:92%}
+.sync-zeile.fehler{color:var(--warn);border-color:var(--warn)}
+.hinweis-karte{border:1px solid var(--warn)}
+.sy-info{background:var(--bg);border-radius:12px;padding:10px 12px;font-size:14.5px;line-height:1.7}
+.sy-meldung{display:block;margin-top:12px;font-size:14px}
+.sy-verlauf{margin-top:12px;font-size:13.5px}
+.sy-verlauf summary{padding:6px 0;cursor:pointer;font-weight:600}
+.sy-verlauf ul{margin:4px 0;padding-left:18px}
+
+/* ---------- Kontakt ---------- */
+.kz{display:flex;align-items:center;border-top:1px solid var(--linie)}
+.kz:first-of-type{border-top:0}
+.kz-link{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 14px;color:inherit;text-decoration:none}
+.kz-icon{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--bg)}
+.kz-icon.gruen{background:#2f9e44;color:#fff}
+.kz-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.kz-label{font-size:13px;color:var(--leise)}
+.kz-wert{font-weight:600;overflow-wrap:anywhere}
+.kz-aktion{flex:none;font-size:14px;font-weight:600;color:var(--link);background:none;border:0;padding:6px}
+.kz-aktion.gruen{color:#fff;background:#2f9e44;border-radius:999px;padding:7px 14px}
+.mini{border:0;background:none;padding:10px 12px;font-size:18px}
+.kundennr{font-size:28px;font-weight:800;letter-spacing:.02em}
+
+/* ---------- Overlay (Hilfe / Info) ---------- */
+#overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.blatt{position:relative;background:var(--karte);width:100%;max-width:640px;max-height:88vh;overflow:auto;
+  border-radius:20px 20px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom) + 22px)}
+@media (min-width:700px){ #overlay{align-items:center} .blatt{border-radius:20px} }
+.blatt h2{margin:0 40px 10px 0;font-size:21px}
+.blatt .x{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:0;background:var(--bg);font-size:16px}
+.blatt details{border-top:1px solid var(--linie);padding:4px 0}
+.blatt summary{padding:10px 0;font-weight:650;cursor:pointer}
+.blatt details p{margin:0 0 10px;font-size:15px}
+.blatt .knopf{margin-top:14px}
+.credit{margin-top:18px;padding-top:12px;border-top:1px solid var(--linie);font-size:14px;color:var(--leise);text-align:center}
+#verNeu{padding-left:20px}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);z-index:60;
+  background:#1f2937;color:#fff;border-radius:12px;padding:10px 16px;font-size:15px;box-shadow:0 6px 18px rgba(0,0,0,.25);margin-bottom:84px;
+  max-width:90vw;transition:opacity .25s;pointer-events:none}
+
+/* ---------- Druck ---------- */
+#druck{display:none}
+@media print{
+  @page{size:A4;margin:14mm 14mm 16mm}
+  html,body{background:#fff !important;color:#000 !important;padding:0}
+  #kopf,#app,#overlay,.toast{display:none !important}
+  #druck{display:block;font:10.5pt/1.35 Arial,Helvetica,sans-serif;color:#000;padding:0 3px 0 1px}
+  #druck *{color:#000}
+  .d-kopf{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:6px}
+  .d-titel{font-size:20pt;font-weight:700}
+  .d-weg{margin:6px 0 10px;font-weight:700}
+  .d-daten{display:flex;gap:16px;margin-bottom:12px}
+  .d-daten > div{flex:1;min-width:0;border:1px solid #999;padding:6px 8px}
+  .d-daten .t{font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em;color:#444;margin-bottom:3px}
+  .d-daten table td{padding:1px 8px 1px 0;vertical-align:top}
+  .d-daten table td:first-child{color:#444;white-space:nowrap}
+  .d-pos{width:100%;border-collapse:collapse}
+  .d-pos th,.d-pos td{border:1px solid #888;padding:4px 6px;vertical-align:top}
+  .d-pos th{background:#e9e9e9;font-size:9pt;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .d-pos tr{break-inside:avoid}
+  .d-pos .r{text-align:right;white-space:nowrap}
+  .d-pos .m{font-weight:700;font-size:12pt;text-align:center}
+  .d-klein{font-size:8.5pt;color:#333}
+  .d-summe{text-align:right;margin-top:6px;font-weight:700;font-size:12pt}
+  .d-summe span{display:block;font-weight:400;font-size:8.5pt}
+  .d-bem{margin-top:10px;border:1px solid #999;padding:6px 8px}
+  .d-unterschrift{display:flex;gap:40px;margin-top:46px}
+  .d-unterschrift div{flex:1;border-top:1px solid #000;padding-top:3px;font-size:9pt}
+  .d-fuss{margin-top:18px;font-size:8pt;color:#555}
+}
+</style>
+</head>
+<body>
+<header id="kopf"></header>
+<main id="app"><noscript><p class="leer">Bitte JavaScript aktivieren.</p></noscript></main>
+<div id="druck"></div>
+<div id="overlay" hidden></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   BESTELLUNGEN – Bestell-App für Lieferanten
+   ---------------------------------------------------------------------
+   Aufbau dieser Datei:
+     1. Version & Neuerungen
+     2. Firmen-Daten (Kontakt, Kopfdaten, Produkte)  ← neue Firmen hier
+     3. Speicher (was auf dem Gerät gemerkt wird)
+     4. Hilfsfunktionen
+     4b. Abgleich mit dem privaten GitHub-Repo (Preise, Kundennummern, Bestellungen)
+     5. Ansichten: Start, Produkte, Bestellzettel, Kontakt
+     6. Drucken / E-Mail / Teilen / Abschließen
+     7. Hilfe & Info
+     8. Bedienung (Antippen, Eingaben) & Start
+   ===================================================================== */
+
+/* ---------- 1. Version & Neuerungen ---------- */
+const APP_VERSION = '1.2';
+const VERSIONEN = [
+  { v: '1.2', datum: '09.11.2026', neu: [
+    'Preise, Kundennummern und Konditionen stehen nicht mehr in der App, sondern nur in deinem privaten GitHub-Repo (stammdaten.json)',
+    'Abgleich mit GitHub: Mengen, eigene Preise, Kopfdaten und frühere Bestellungen sind auf iPhone und iPad gleich – die neuere Änderung gewinnt',
+    'Gelöschte frühere Bestellungen verschwinden auch auf dem anderen Gerät',
+    'Sicherheitssperre: Die App verbindet sich nur mit einem privaten Repo',
+    'Startseite zeigt den Stand des Abgleichs; Hilfe mit Anleitung „Abgleich einrichten“',
+  ]},
+  { v: '1.1', datum: '09.11.2026', neu: [
+    'Preise änderbar unter „Bearbeiten“ – auch für Weber (leer = Listenpreis)',
+    'Mindestbestellwert je Firma (in den Kopfdaten) mit Anzeige „noch … € bis zum Mindestwert“',
+    'Summenleiste unten in der Produktliste',
+    '„Bestellt – ablegen“: Bestellweg Telefon, Fax, MDE oder E-Mail, Gesprächspartner, Datum und Notiz',
+    'Frühere Bestellungen zeigen, wann, wie und mit wem bestellt wurde (aufklappbar)',
+    'Bestellzettel: Anrufen-Knopf direkt beim Lieferanten; E-Mail und Teilen klein darunter',
+    '„Auswahl“ heißt jetzt „Bearbeiten“',
+  ]},
+  { v: '1.0', datum: '09.11.2026', neu: [
+    'Erste Version mit zwei Lieferanten: Remsgold und Weber Packaging',
+    'Je Firma eine Kachel – zeigt offene Positionen und die letzte Bestellung',
+    'Produkte nach Kategorien (aufklappbar), Mengen mit + / −, Suche',
+    'Produkte ausblenden über „Auswahl“',
+    'Bestellzettel mit Kopfdaten, Drucken / PDF, E-Mail und Teilen',
+    'Bestellung abschließen → „Frühere Bestellungen“, wieder übernehmbar',
+    'Reiter Kontakt: Anrufen per Antippen, eigene Kontakte ergänzen',
+  ]},
+];
+
+/* ---------- 2. Firmen-Daten ----------
+   Hier steht nur, was ohnehin öffentlich ist: Produkte und Lieferanten-Kontakte.
+   Preise, Kundennummern, Lieferanschrift und Konditionen stehen NICHT hier,
+   sondern in stammdaten.json im privaten GitHub-Repo (siehe Abschnitt 9).
+   Remsgold-Spalten wie auf der Preisliste:
+   [Bezeichnung, Art.-Nr., Inhalt, VPE, Gebinde, PE]
+   VPE = Verpackungseinheit (so viele Gebinde kommen pro bestellter Einheit)
+   PE  = Preiseinheit                                                        */
+const REMSGOLD_LISTE = {
+  'Geschirrreiniger': [
+    ['Geschirrreiniger RG 3050',                 '0301210', '12 kg',  1, 'Kanister',  'kg'],
+    ['Geschirrreiniger RG 3050',                 '0301225', '25 kg',  1, 'Kanister',  'kg'],
+    ['Geschirrreiniger RG 309',                  '0701110', '12 kg',  1, 'Kanister',  'kg'],
+    ['Geschirrreiniger Pulverkartusche RG 3046', '0102083', '3,5 kg', 4, 'Kartusche', 'kg'],
+  ],
+  'Klarspüler': [
+    ['Klarspüler sauer KS 304',        '0501110', '10 kg', 1, 'Kanister', 'kg'],
+    ['Klarspüler Kunststoff KS 3046',  '0501310', '10 kg', 1, 'Kanister', 'kg'],
+  ],
+  'Gläserreiniger und -klarspüler': [
+    ['Gläserreiniger RG 307',     '0701212', '12 kg', 1, 'Kanister', 'kg'],
+    ['Gläser-Klarspüler KS 307',  '0901110', '10 kg', 1, 'Kanister', 'kg'],
+  ],
+  'Handspülmittel': [
+    ['BCP Handspülmittel duftfrei BC 65', '9050003', '1,5 l', 2, 'Beutel',   'Btl.'],
+    ['BCP Handspülmittel duftfrei BC 65', '9050010', '10 kg', 1, 'Kanister', 'kg'],
+    ['Handspülmittel Konzentrat RG 300',  '1301201', '1 l',   6, 'Flasche',  'Fl'],
+    ['Handspülmittel Konzentrat RG 300',  '1301210', '10 kg', 1, 'Kanister', 'kg'],
+    ['Powerclean Cleany Handspülmittel',  '1336601', '1 l',   6, 'Flasche',  'l'],
+    ['Powerclean Cleany Handspülmittel',  '1336610', '10 kg', 1, 'Kanister', 'kg'],
+    ['Nachfüllflasche mit PushPull 1 l',  '7445010', '1 St.', 1, 'Flasche',  'St.'],
+  ],
+  'Geschirrspülsalz, Tauchbäder, Entschäumer': [
+    ['Geschirrspülsalz BC 50',        '9011102', '2 kg',   6, 'Karton',   'kg'],
+    ['Salztabletten',                 '4101125', '25 kg',  1, 'Sack',     'kg'],
+    ['Geschirrgrundreiniger RG 911',  '1701410', '4,2 kg', 1, 'Eimer',    'kg'],
+    ['Entschäumer RG 3001',           '2701301', '1 l',    3, 'Karton',   'kg'],
+    ['Entschäumer RG 3001',           '2701310', '10 kg',  1, 'Kanister', 'kg'],
+  ],
+  'Edelstahlreiniger und -pflege': [
+    ['Edelstahlreiniger RG 1002',     '1901101', '1 l',    6, 'Flasche',   'l'],
+    ['Edelstahlpflegespray RG 1100',  '1901294', '400 ml', 6, 'Spraydose', 'SpDs'],
+    ['Edelstahlpflege RG 1051',       '1901301', '250 ml', 6, 'Flasche',   'Fl'],
+  ],
+  'Küchenunterhaltsreiniger': [
+    ['Fett- und Eiweißlöser RG 1080',       '1101301', '1 l',   6, 'Flasche',  'l'],
+    ['Fett- und Eiweißlöser RG 1080',       '1101310', '10 kg', 1, 'Kanister', 'kg'],
+    ['Schaumreiniger chlorhaltig RG 1095',  '1500010', '10 kg', 1, 'Kanister', 'kg'],
+    ['Saurer Schaumreiniger RG 3006',       '1140010', '12 kg', 1, 'Kanister', 'kg'],
+    ['BCP Saurer Reiniger BC 71',           '9029003', '1,5 l', 2, 'Beutel',   'Btl.'],
+    ['Küchenbodenreiniger RG 5005',         '3111210', '10 kg', 1, 'Kanister', 'kg'],
+    ['Grundreiniger RG 5001',               '2901110', '10 kg', 1, 'Kanister', 'kg'],
+  ],
+  'Sanitärreiniger': [
+    ['CLW Sanitärreiniger Citrus RG 3003',    '2501910', '10 kg', 1, 'Kanister', 'kg'],
+    ['CLW Bad-Reiniger-Konzentrat RG 3005',   '2536815', '1,5 l', 2, 'Beutel',   'Btl.'],
+    ['Sanitärreiniger und Entkalker RG 3000', '2536801', '1 l',   6, 'Flasche',  'l'],
+    ['Sanitärreiniger und Entkalker RG 3000', '2536810', '10 kg', 1, 'Kanister', 'kg'],
+  ],
+  'Boden- und Unterhaltsreinigung': [
+    ['Glas- u. Fensterreiniger Aktiv RG 2007', '2501575', '500 ml', 6, 'Sprühflasche', 'SpFl'],
+    ['Glas- u. Fensterreiniger Aktiv RG 2007', '2501510', '10 kg',  1, 'Kanister',     'kg'],
+    ['Allzweckreiniger Aktiv RG 3004',         '1501995', '500 ml', 6, 'Sprühflasche', 'SpFl'],
+    ['Bodenwischpflege RG 5008',               '1030010', '10 kg',  1, 'Kanister',     'kg'],
+  ],
+  'Spezialreiniger': [
+    ['Mega Orange RG 707',          '1080005', '500 ml', 6, 'Flasche', 'Fl'],
+    ['Chlorbleiche aktiv RG 2001',  '2501895', '500 ml', 6, 'Flasche', 'Fl'],
+  ],
+  'Tiefkühlreiniger': [
+    ['Tiefkühlreiniger RG 501', '1500101', '1 l',   6, 'Flasche',  'l'],
+    ['Tiefkühlreiniger RG 501', '1500110', '10 kg', 1, 'Kanister', 'kg'],
+  ],
+  'Küchengerätereiniger': [
+    ['Grillreiniger Aktiv RG 1086',          '1501101', '1 l',   2, 'Sprühflasche', 'l'],
+    ['Grillreiniger RG 1083',                '1501110', '12 kg', 1, 'Kanister',     'kg'],
+    ['Konvektomatenreiniger RG 3078',        '1501311', '12 kg', 1, 'Kanister',     'kg'],
+    ['Konvektomatenklarspüler KS 3078',      '1501310', '10 kg', 1, 'Kanister',     'kg'],
+    ['Rauchkammer-Reiniger RG 1082',         '3701310', '12 kg', 1, 'Kanister',     'kg'],
+    ['MKN Two In One Reinigungskartuschen',  '4320060', '1 g',  60, 'Stück',        'St'],
+  ],
+  'Kalklöser': [
+    ['Kalklöser RG 301',         '2301101', '1 l',   6, 'Flasche',  'l'],
+    ['Kalklöser RG 302',         '2301212', '12 kg', 1, 'Kanister', 'kg'],
+    ['Kalklöser RG 303 Pulver',  '2101101', '1 kg',  6, 'Dose',     'kg'],
+    ['Kalklöser RG 303 Pulver',  '2101110', '10 kg', 1, 'Eimer',    'kg'],
+  ],
+  'Desinfektion': [
+    ['REGOanid+ Flächendesinfektion DS 4007',     '1520007', '10 l',    1, 'Kanister',     'l'],
+    ['REGOanid+ Flächendesinfektion DS 4007',     '1520011', '1 l',     2, 'Beutel',       'l'],
+    ['REGOdes Schnelldesinfektion DS 4006',       '4340225', '2,5 l',   1, 'Kanister',     'l'],
+    ['REGOdes Schnelldesinfektion DS 4006',       '4340121', '1 l',     2, 'Sprühflasche', 'l'],
+    ['REGOdes Wipes DS 4008 Nachfülltücher',      '4340123', '120 St.', 2, 'Beutel',       'Btl.'],
+    ['REGOdes Wipes Leereimer DS 4008',           '4340122', '1 St.',   1, 'Eimer',        'Eim'],
+    ['REGOdes Vliestuchrolle 6 Rollen 150 Blatt', '5301893', '1',       1, 'Karton',       'Karton'],
+  ],
+  'Personalhygiene': [
+    ['REGOskin Händedesinfektionsgel DS 4501',     '1506058', '800 ml', 10, 'Beutel',   'Btl'],
+    ['REGOskin Händedesinfektionsgel DS 4501',     '1506001', '1 l',    12, 'Flasche',  'l'],
+    ['REGOskin Händedesinfektionsgel DS 4501',     '1506005', '5 l',     1, 'Kanister', 'l'],
+    ['REGOskin Händedesinfektion liquid DS 4502',  '1509240', '240 ml',  6, 'Spender',  'Fl'],
+    ['REGOskin Händedesinfektion liquid DS 4502',  '1509800', '800 ml', 10, 'Beutel',   'Btl'],
+    ['REGOskin Händedesinfektion liquid DS 4502',  '1509005', '5 l',     1, 'Kanister', 'l'],
+    ['REGOskin Händedesinfektion liquid DS 4502',  '1509001', '1 l',     6, 'Flasche',  'Fl'],
+    ['Handwaschseife duftfrei BC 145',             '9026801', '800 ml', 10, 'Beutel',   'Btl'],
+    ['Hautschutzcreme RG 2005 – Gummi-Ventil',     '3302608', '800 ml',  2, 'Beutel',   'Btl'],
+    ['Hautpflegecreme RG 2004 – Gummi-Ventil',     '3302508', '800 ml',  5, 'Beutel',   'Btl'],
+  ],
+  'Kaffeemaschinenreiniger und -entkalker': [
+    ['RegoCoff Kaffeemaschinenreiniger Pulver RC 906',  '1505001', '1 kg',     6, 'Dose',          'kg'],
+    ['RegoCoff Kaffeemaschinenreiniger flüssig RC 916', '1505101', '1 l',      6, 'Dosierflasche', 'l'],
+    ['RegoCoff Reinigungstabs für Kaffeemaschinen',     '1505106', '10 × 2 g', 55, 'Faltschachtel', 'Fs'],
+    ['RegoCoff Reiniger für Milchaufschäumer RC 917',   '1505201', '1 l',      6, 'Dosierflasche', 'l'],
+    ['RegoCoff Kalklöser auf Milchsäurebasis RC 919',   '1504001', '1 l',      6, 'Flasche',       'Fl'],
+    ['RegoCoff Kaffeemaschinenentkalker Tabs RC 929',   '1505104', '5 × 15 g', 8, 'Faltschachtel', 'Fs'],
+  ],
+  'Rational Tabs – Kombidämpfer': [
+    ['Rational Reiniger-Tabs',                '4310403', '100 St.', 1, 'Eimer', 'Eim'],
+    ['Rational Reiniger-Tabs Active Green',   '4310803', '150 St.', 1, 'Eimer', 'Eim'],
+    ['Rational Pflege-Tabs (Care Control)',   '4310603', '150 St.', 1, 'Eimer', 'Eim'],
+    ['Rational Klarspüler-Tabs',              '4310503', '50 St.',  1, 'Eimer', 'Eim'],
+  ],
+};
+
+/* Weber-Spalten: [Bezeichnung, Art.-Nr., Details, Kartoninhalt, Bestelleinheit] */
+const WEBER_LISTE = {
+  'Siegelschalen': [
+    ['PP-Siegelschale 370 ml',  'SBPP375',  'transparent, 137 × 96 × 49 mm, mikrowellengeeignet',   '2.000 Stück', 'Karton'],
+    ['PP-Siegelschale 480 ml',  'SBPP500',  'transparent, 137 × 96 × 66 mm, mikrowellengeeignet',   '1.600 Stück', 'Karton'],
+    ['PP-Siegelschale 730 ml',  'SBPP750',  'transparent, 192 × 137 × 40 mm, mikrowellentauglich',  '1.200 Stück', 'Karton'],
+    ['PP-Siegelschale 970 ml',  'SBPP1000', 'transparent, 192 × 137 × 55 mm, mikrowellengeeignet',  '900 Stück',   'Karton'],
+    ['PP-Siegelschale 2000 ml', 'SBPP2000', 'transparent, 192 × 137 × 100 mm, mikrowellentauglich', '600 Stück',   'Karton'],
+  ],
+  'Deckel': [
+    ['PP-Schnappdeckel klein', 'SBPPDk', '137 × 96 × 12 mm, für Schalen SBPP180 – SBPP500',   '900 Stück', 'Karton'],
+    ['PP-Schnappdeckel groß',  'SBPPDg', '192 × 137 × 12 mm, für Schalen SBPP750 – SBPP2000', '800 Stück', 'Karton'],
+  ],
+  'Folien': [
+    ['Siegelfolie 150 mm breit', 'VF1540/150', '', '1 Rolle', 'Rolle'],
+    ['WEBAfilm Schlauchfolie',   'VFAPS35',    '350 mm × 150 lfm, Neutraldruck, beidseitig bedruckt, Alu-Siegelverbund', '1 Rolle', 'Rolle'],
+  ],
+};
+
+function tabelleZuArtikeln(tabelle, umwandeln) {
+  const liste = [];
+  for (const [kategorie, zeilen] of Object.entries(tabelle))
+    for (const z of zeilen) liste.push(Object.assign({ k: kategorie }, umwandeln(z)));
+  return liste;
+}
+
+const FIRMEN = [
+  {
+    id: 'remsgold',
+    name: 'Remsgold',
+    vollname: 'REMSGOLD Chemie GmbH & Co. KG',
+    untertitel: 'Spül-, Küchen- & Personalhygiene',
+    kuerzel: 'R', farbe: '#1d3c84', farbe2: '#d7262e',
+    mitVpe: true,
+    stand: 'BriXomat CleanWave · Preisliste gültig ab 01.01.2026',
+    bestellweg: 'per Fax 07181 97704-50 oder E-Mail an vertrieb@remsgold.de',
+    bestellMail: 'vertrieb@remsgold.de',
+    kontakt: [
+      { typ: 'adresse', label: 'Anschrift',                      wert: 'Talstraße 2, 73650 Winterbach' },
+      { typ: 'tel',     label: 'Telefon Bestellung (Durchwahl)', wert: '07181 97704-26' },
+      { typ: 'tel',     label: 'Zentrale',                       wert: '07181 97704-0' },
+      { typ: 'fax',     label: 'Fax für Bestellungen',           wert: '07181 97704-50' },
+      { typ: 'mail',    label: 'E-Mail Vertrieb (Bestellungen)', wert: 'vertrieb@remsgold.de' },
+      { typ: 'mail',    label: 'E-Mail allgemein',               wert: 'info@remsgold.de' },
+      { typ: 'web',     label: 'Internet',                       wert: 'www.remsgold.de' },
+    ],
+    artikel: tabelleZuArtikeln(REMSGOLD_LISTE, ([n, nr, inh, vpe, geb, pe]) => ({ n, nr, inh, vpe, geb, pe })),
+  },
+  {
+    id: 'weber',
+    name: 'Weber Packaging',
+    vollname: 'WEBER Packaging GmbH',
+    untertitel: 'Siegelschalen, Deckel & Folien',
+    kuerzel: 'W', farbe: '#c4600f', farbe2: '#f08a24',
+    mitVpe: false,
+    stand: 'Bestellformular vom 07.10.2019 · ohne Preise',
+    bestellweg: 'per Fax 07135 93063-29',
+    bestellMail: 'info@weber-packaging.de',
+    kontakt: [
+      { typ: 'adresse', label: 'Anschrift',            wert: 'Langwiesenstraße 22, 74363 Güglingen' },
+      { typ: 'tel',     label: 'Zentrale',             wert: '07135 93063-0' },
+      { typ: 'fax',     label: 'Fax für Bestellungen', wert: '07135 93063-29' },
+      { typ: 'mail',    label: 'E-Mail allgemein',     wert: 'info@weber-packaging.de' },
+      { typ: 'web',     label: 'Internet',             wert: 'www.weber-packaging.de' },
+      { typ: 'notiz',   label: 'Geschäftsführer',      wert: 'Stephan Weber, Michael Weber' },
+    ],
+    artikel: tabelleZuArtikeln(WEBER_LISTE, ([n, nr, d, inh, einheit]) => ({ n, nr, d, inh, einheit })),
+  },
+];
+
+/* ---------- 3. Speicher ---------- */
+const SPEICHER_KEY = 'bestellungen.daten.v1';
+function leererZustand() {
+  return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
+           geloescht: [], zeit: {} };
+}
+function laden() {
+  try {
+    const t = localStorage.getItem(SPEICHER_KEY);
+    if (t) return Object.assign(leererZustand(), JSON.parse(t));
+  } catch (e) { /* kaputte Daten → neu anfangen */ }
+  return leererZustand();
+}
+function speichern() {
+  track();   /* merkt sich, was sich geändert hat (für den Abgleich) */
+  try { localStorage.setItem(SPEICHER_KEY, JSON.stringify(S)); } catch (e) { /* Speicher voll/gesperrt */ }
+  syncBald();
+}
+let S = laden();
+/* Abgleich (Abschnitt 4b): Zustand */
+const SYNC_KEY = 'bestellungen.sync';
+let SY = {};
+try { SY = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { SY = {}; }
+let SNAP = null, syTimer = null, syLaeuft = false, syNochmal = false;
+const UI = { firma: null, reiter: 'produkte', bearbeiten: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false };
+
+/* ---------- 4. Hilfsfunktionen ---------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const EUR = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+const eur = n => EUR.format(n || 0);
+const heuteDe = () => new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const isoZuDe = iso => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
+const telHref = n => 'tel:' + (String(n).trim().startsWith('+') ? '+' : '') + String(n).replace(/\D/g, '');
+const webHref = w => /^https?:/i.test(w) ? w : 'https://' + w;
+const kartenHref = a => 'https://maps.apple.com/?q=' + encodeURIComponent(a);
+
+const firmaById = id => FIRMEN.find(f => f.id === id) || null;
+const artikelNr = (f, nr) => f.artikel.find(a => a.nr === nr) || null;
+const kategorien = f => [...new Set(f.artikel.map(a => a.k))];
+const menge = (f, nr) => (S.mengen[f.id] || {})[nr] || 0;
+const ausgeblendet = f => new Set(S.aus[f.id] || []);
+function positionen(f) {
+  const mm = S.mengen[f.id] || {};
+  return f.artikel.filter(a => mm[a.nr] > 0).map(a => ({ a, m: mm[a.nr] }));
+}
+/* Stammdaten aus dem privaten Repo (Preise, Kundennummern, Kopfdaten) – auf dem Gerät zwischengespeichert */
+const STAMM_KEY = 'bestellungen.stamm';
+let STAMM = null;
+try { STAMM = JSON.parse(localStorage.getItem(STAMM_KEY) || 'null'); } catch (e) { STAMM = null; }
+const stammFirma = f => (STAMM && STAMM.firmen && STAMM.firmen[f.id]) || {};
+function listenPreis(f, a) { const p = (stammFirma(f).preise || {})[a.nr]; return Array.isArray(p) ? { ppe: p[0], pvpe: p[1] } : {}; }
+const hinweisVon = (f, a) => (stammFirma(f).hinweise || {})[a.nr] || '';
+const preisHinweisVon = f => stammFirma(f).preisHinweis || '';
+
+/* Preis je Bestelleinheit: eigener Preis (falls eingetragen), sonst Listenpreis, sonst null */
+function preisVpe(f, a) {
+  const p = (S.preise[f.id] || {})[a.nr];
+  if (typeof p === 'number') return p;
+  const lp = listenPreis(f, a).pvpe;
+  return typeof lp === 'number' ? lp : null;
+}
+const preisGeaendert = (f, a) => typeof (S.preise[f.id] || {})[a.nr] === 'number';
+function setPreis(f, nr, text) {
+  const a = artikelNr(f, nr); if (!a) return;
+  const v = parseZahl(text), pp = (S.preise[f.id] ||= {});
+  const lp = listenPreis(f, a).pvpe;
+  if (!(v >= 0) || (typeof lp === 'number' && Math.abs(v - lp) < 0.005)) delete pp[nr];
+  else pp[nr] = Math.round(v * 100) / 100;
+  speichern();
+}
+const summe = f => positionen(f).reduce((s, { a, m }) => s + (preisVpe(f, a) || 0) * m, 0);
+const hatPreise = f => positionen(f).some(({ a }) => preisVpe(f, a) !== null);
+/* „1.234,56 €“ → 1234.56 */
+function parseZahl(t) {
+  const s = String(t ?? '').trim().replace(/[\s€]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+  return s === '' ? NaN : Number(s);
+}
+const zahlDe = n => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function mindestwert(f) { const v = parseZahl(kopfDaten(f).mindestwert); return v > 0 ? v : 0; }
+const einheitEinzahl = (f, a) => f.mitVpe ? 'VPE' : (a.einheit || 'Karton');
+const heuteIso = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const WEGE = [['telefon', '📞', 'Telefon'], ['fax', '📠', 'Fax'], ['mde', '📟', 'MDE'], ['mail', '✉️', 'E-Mail']];
+const wegName = w => (WEGE.find(([id]) => id === w) || [])[2] || '';
+const wegText = w => { const x = WEGE.find(([id]) => id === w); return x ? x[1] + ' ' + x[2] : ''; };
+
+function kopfDaten(f) {
+  const k = Object.assign({ besteller: '', telefon: '', mindestwert: '', liefertermin: '', bemerkung: '' }, stammFirma(f).kopf || {}, S.kopf[f.id] || {});
+  if (!k.besteller && S.letzterBesteller) k.besteller = S.letzterBesteller;
+  return k;
+}
+/* „6 × 1 l Flasche“ bzw. „Karton à 2.000 Stück“ */
+function gebindeText(f, a) {
+  if (f.mitVpe) return (a.vpe > 1 ? a.vpe + ' × ' : '') + a.inh + ' ' + a.geb;
+  return a.einheit === 'Rolle' ? 'je Rolle' : 'Karton à ' + a.inh;
+}
+/* Einheit der Bestellmenge: VPE bzw. Karton/Kartons, Rolle/Rollen */
+function einheit(f, a, m) {
+  if (f.mitVpe) return 'VPE';
+  const e = a.einheit || 'Karton';
+  if (m === 1) return e;
+  return e === 'Rolle' ? 'Rollen' : e + 's';
+}
+
+function setMenge(f, nr, m) {
+  m = Math.max(0, Math.min(999, Math.round(Number(m) || 0)));
+  const mm = (S.mengen[f.id] ||= {});
+  if (m) mm[nr] = m; else delete mm[nr];
+  speichern();
+  nachMengenAenderung(f, nr);
+}
+function setSichtbar(f, nr, sichtbar) {
+  const s = ausgeblendet(f);
+  if (sichtbar) s.delete(nr); else s.add(nr);
+  S.aus[f.id] = [...s];
+  speichern();
+}
+
+let toastTimer;
+function toast(text) {
+  let t = $('.toast');
+  if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = text; t.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+
+/* ---------- 4b. Abgleich über ein privates GitHub-Repo ----------
+   Im privaten Repo liegen zwei Dateien:
+   • stammdaten.json         – Preise, Kundennummern, Kopfdaten (liest die App nur)
+   • bestellungen-daten.json – Mengen, eigene Preise, Kopfdaten-Änderungen, frühere Bestellungen …
+                               (schreibt die App selbst; die neuere Änderung gewinnt)
+   Der Schlüssel bleibt nur auf diesem Gerät. Hochgeladen wird nur nach erfolgreichem Abruf. */
+const STAMM_DATEI = 'stammdaten.json', DATEN_DATEI = 'bestellungen-daten.json';
+const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra'];
+const GLOBAL = ['letzterWeg', 'letzterBesteller'];
+const sySave = () => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(SY)); } catch (e) { /* egal */ } };
+const syAktiv = () => !!(SY.token && SY.owner && SY.repo);
+const geraetName = () => (/iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1))
+  ? 'iPad' : /iPhone/.test(navigator.userAgent) ? 'iPhone' : 'Computer';
+function zeitText(ms) {
+  const d = new Date(ms), heute = new Date().toDateString() === d.toDateString();
+  const uhr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return heute ? 'heute ' + uhr : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + uhr;
+}
+/* Vergleich unabhängig von der Reihenfolge */
+function sortiert(v) {
+  if (Array.isArray(v)) return v.map(sortiert);
+  if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v).sort()) o[k] = sortiert(v[k]); return o; }
+  return v === undefined ? null : v;
+}
+const canon = v => JSON.stringify(sortiert(v));
+const histSort = (x, y) => (y.iso || '').localeCompare(x.iso || '') || (y.id - x.id);
+
+/* Merkt sich, wann welcher Teil (je Firma) zuletzt geändert wurde */
+function schnappschuss() {
+  const m = {};
+  for (const t of TEILE)
+    for (const id of new Set([...FIRMEN.map(f => f.id), ...Object.keys(S[t] || {})])) m[t + '|' + id] = canon((S[t] || {})[id]);
+  for (const g of GLOBAL) m[g] = canon(S[g]);
+  return m;
+}
+function track() {
+  const neu = schnappschuss(), jetzt = Date.now();
+  S.zeit = S.zeit || {};
+  if (SNAP) for (const k in neu) if (neu[k] !== SNAP[k]) S.zeit[k] = jetzt;
+  SNAP = neu;
+}
+function syncDaten() {
+  const d = { app: 'bestellungen', format: 1, zeit: S.zeit || {}, historie: S.historie || {}, geloescht: S.geloescht || [] };
+  for (const t of TEILE) d[t] = S[t] || {};
+  for (const g of GLOBAL) d[g] = S[g];
+  return d;
+}
+/* Zwei Stände zusammenführen: je Teil gewinnt die neuere Änderung;
+   frühere Bestellungen werden vereinigt, gelöschte bleiben gelöscht */
+function mergeSync(L, R) {
+  const LZ = L.zeit || {}, RZ = R.zeit || {}, out = { app: 'bestellungen', format: 1, zeit: {} };
+  const waehle = (k, lv, rv) => {
+    const tl = LZ[k] || 0, tr = RZ[k] || 0, z = Math.max(tl, tr);
+    if (z) out.zeit[k] = z;
+    return tr > tl ? rv : tl > tr ? lv : (lv !== undefined ? lv : rv);
+  };
+  for (const t of TEILE) {
+    out[t] = {};
+    const lt = L[t] || {}, rt = R[t] || {};
+    for (const id of new Set([...Object.keys(lt), ...Object.keys(rt)])) {
+      const v = waehle(t + '|' + id, lt[id], rt[id]);
+      if (v !== undefined && v !== null) out[t][id] = v;
+    }
+  }
+  for (const g of GLOBAL) { const v = waehle(g, L[g], R[g]); if (v !== undefined && v !== null) out[g] = v; }
+  const weg = new Set([...(L.geloescht || []), ...(R.geloescht || [])].map(String));
+  out.geloescht = [...weg].slice(-500);
+  out.historie = {};
+  const lh = L.historie || {}, rh = R.historie || {};
+  for (const id of new Set([...Object.keys(lh), ...Object.keys(rh)])) {
+    const m = new Map();
+    for (const h of [...(rh[id] || []), ...(lh[id] || [])]) if (h && !weg.has(String(h.id))) m.set(String(h.id), h);
+    const liste = [...m.values()].sort(histSort).slice(0, 60);
+    if (liste.length) out.historie[id] = liste;
+  }
+  return out;
+}
+const inhalt = d => { const n = mergeSync(d, d); return canon([TEILE.map(t => n[t]), GLOBAL.map(g => n[g] ?? null), n.historie, n.geloescht, n.zeit]); };
+function applySync(m) {
+  for (const t of TEILE) S[t] = m[t] || {};
+  S.letzterWeg = m.letzterWeg || {}; S.letzterBesteller = m.letzterBesteller || '';
+  S.historie = m.historie || {}; S.geloescht = m.geloescht || []; S.zeit = m.zeit || {};
+  try { localStorage.setItem(SPEICHER_KEY, JSON.stringify(S)); } catch (e) { /* egal */ }
+  SNAP = schnappschuss();
+}
+
+/* GitHub-Zugriff */
+function b64enc(str) {
+  const b = new TextEncoder().encode(str); let s = '';
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function b64dec(b64) {
+  const bin = atob(String(b64).replace(/\s/g, '')), b = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(b);
+}
+async function gh(method, datei, body) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 20000);
+  const url = `https://api.github.com/repos/${encodeURIComponent(SY.owner)}/${encodeURIComponent(SY.repo)}` + (datei ? '/contents/' + encodeURIComponent(datei) : '');
+  try {
+    return await fetch(url, { method, cache: 'no-store', signal: ctl.signal,
+      headers: { 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + SY.token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined });
+  } catch (e) {
+    throw new Error(e.name === 'AbortError' ? 'GitHub antwortet nicht (Zeitüberschreitung)' : 'Keine Verbindung – Internet prüfen');
+  } finally { clearTimeout(timer); }
+}
+function ghFehler(r) {
+  if (r.status === 401) return new Error('Schlüssel ungültig oder abgelaufen – neuen Schlüssel erstellen');
+  if (r.status === 403) return new Error('Kein Zugriff – beim Schlüssel „Contents: Read and write“ für dieses Repo prüfen');
+  if (r.status === 429) return new Error('GitHub-Limit erreicht – gleich nochmal versuchen');
+  if (r.status === 404) return new Error('Repo nicht gefunden – Name prüfen, und ob der Schlüssel Zugriff auf dieses Repo hat');
+  return new Error('GitHub antwortet mit Fehler ' + r.status);
+}
+async function ghLesen(datei) {
+  const r = await gh('GET', datei);
+  if (r.status === 404) return { sha: null, data: null };
+  if (!r.ok) throw ghFehler(r);
+  const j = await r.json();
+  try { return { sha: j.sha, data: JSON.parse(b64dec(j.content)) }; }
+  catch (e) { throw new Error(datei + ' im Repo ist beschädigt (kein gültiges JSON)'); }
+}
+async function ghSchreiben(datei, data, sha) {
+  const r = await gh('PUT', datei, { message: `Abgleich ${geraetName()} ${new Date().toLocaleString('de-DE')}`,
+    content: b64enc(JSON.stringify(data, null, 1)), ...(sha ? { sha } : {}) });
+  if (r.status === 409 || r.status === 422) return false;   /* jemand war schneller → nochmal */
+  if (!r.ok) throw ghFehler(r);
+  return true;
+}
+function syLog(text) { SY.verlauf = [{ t: Date.now(), text }, ...(SY.verlauf || [])].slice(0, 15); }
+function syncBald() { if (!syAktiv()) return; clearTimeout(syTimer); syTimer = setTimeout(() => syncJetzt(false), 3000); }
+const eingabeAktiv = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('#app').contains(a); };
+
+async function syncJetzt(vonHand) {
+  if (!syAktiv()) return false;
+  if (syLaeuft) { syNochmal = true; return false; }
+  syLaeuft = true; renderSyncAnzeige();
+  let zeichnen = false, ok = false;
+  try {
+    /* 1. Stammdaten holen */
+    const st = await ghLesen(STAMM_DATEI);
+    if (st.data) {
+      if (st.data.app !== 'bestellungen-stammdaten') throw new Error('stammdaten.json passt nicht zu dieser App');
+      if (canon(st.data) !== canon(STAMM)) {
+        STAMM = st.data; zeichnen = true;
+        try { localStorage.setItem(STAMM_KEY, JSON.stringify(STAMM)); } catch (e) { /* egal */ }
+      }
+    } else if (!STAMM) syLog('Hinweis: stammdaten.json fehlt im Repo');
+    /* 2. Eigene Daten abgleichen */
+    for (let versuch = 1; ; versuch++) {
+      const r = await ghLesen(DATEN_DATEI);
+      if (r.data && r.data.app !== 'bestellungen') throw new Error('bestellungen-daten.json gehört nicht zu dieser App – nichts überschrieben');
+      const lokal = syncDaten(), m = mergeSync(lokal, r.data || lokal);
+      if (inhalt(m) !== inhalt(lokal)) { applySync(m); zeichnen = true; }
+      if (!r.data || inhalt(m) !== inhalt(r.data)) {
+        const geschrieben = await ghSchreiben(DATEN_DATEI, Object.assign({}, m, { geraet: geraetName(), gespeichert: new Date().toISOString() }), r.sha);
+        if (!geschrieben) { if (versuch < 3) continue; throw new Error('Gleichzeitige Änderung auf GitHub – bitte gleich nochmal'); }
+      }
+      break;
+    }
+    SY.zuletzt = Date.now(); SY.fehler = ''; ok = true;
+    syLog(vonHand ? '✓ abgeglichen (von Hand)' : '✓ abgeglichen');
+  } catch (e) {
+    SY.fehler = e.message || String(e); syLog('✗ ' + SY.fehler);
+  } finally {
+    syLaeuft = false; sySave();
+    if (zeichnen) { if (eingabeAktiv()) UI.spaeterZeichnen = true; else neuZeichnen(); }
+    renderSyncAnzeige();
+    if (syNochmal) { syNochmal = false; syncBald(); }
+  }
+  return ok;
+}
+async function verbinden() {
+  const owner = $('#sy-owner').value.trim(), repo = $('#sy-repo').value.trim(), token = $('#sy-token').value.trim();
+  if (!owner || !repo || !token) { zeigeOverlay(syncHtml('Bitte alle drei Felder ausfüllen.')); return; }
+  const knopf = $('[data-akt=verbinden]');
+  if (knopf) { knopf.disabled = true; knopf.textContent = 'Verbinde …'; }
+  const vorher = SY;
+  SY = Object.assign({}, SY, { owner, repo, token, fehler: '' });
+  try {
+    const r = await gh('GET', '');
+    if (!r.ok) throw ghFehler(r);
+    const info = await r.json();
+    if (info.private !== true) throw new Error('Dieses Repo ist öffentlich! Preise und Kundennummern wären für alle sichtbar – bitte ein privates Repo nehmen.');
+    syLog('Verbunden mit ' + owner + '/' + repo);
+    sySave();
+    await syncJetzt(true);
+    zeigeOverlay(syncHtml());
+    if (!SY.fehler) toast(STAMM ? 'Verbunden – Preise geladen ✓' : 'Verbunden ✓');
+  } catch (e) {
+    SY = Object.assign({}, vorher, { owner, repo, token: '' }); sySave();
+    zeigeOverlay(syncHtml(e.message || String(e)));
+  }
+}
+function syncStatusText() {
+  if (syLaeuft) return 'gleicht ab …';
+  if (SY.fehler) return '⚠ ' + SY.fehler;
+  return SY.zuletzt ? 'abgeglichen ' + zeitText(SY.zuletzt) : 'noch nicht abgeglichen';
+}
+function syncZeileHtml() {
+  if (!syAktiv()) return `<button class="sync-zeile" data-akt="abgleich">☁️ Abgleich mit GitHub einrichten</button>`;
+  return `<button class="sync-zeile ${SY.fehler && !syLaeuft ? 'fehler' : ''}" data-akt="abgleich">☁️ ${esc(syncStatusText())}</button>`;
+}
+function syncHtml(meldung) {
+  const kopf = `<h2>☁️ Abgleich mit GitHub</h2>`;
+  if (!syAktiv()) return `<div id="syncBlatt">${kopf}
+    <p class="klein">Preise, Kundennummern und deine Bestellungen liegen in deinem <b>privaten</b> GitHub-Repo. Nur Geräte mit dem Schlüssel kommen dran – und iPhone und iPad haben denselben Stand.</p>
+    <label class="feld"><span>GitHub-Name</span><input id="sy-owner" value="${esc(SY.owner || '1965-chris')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <label class="feld"><span>Privates Repo</span><input id="sy-repo" value="${esc(SY.repo || 'Bestellungen-Daten')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <label class="feld"><span>Schlüssel (Token)</span><input id="sy-token" type="password" autocomplete="off" autocapitalize="off" placeholder="github_pat_…"></label>
+    ${meldung ? `<div class="warn sy-meldung">⚠ ${esc(meldung)}</div>` : ''}
+    <button class="knopf haupt" data-akt="verbinden" style="margin-top:14px">Verbinden</button>
+    <p class="leise klein">Anleitung: ℹ Hilfe › „☁️ Abgleich einrichten“</p></div>`;
+  const verlauf = (SY.verlauf || []).map(v => `<li>${esc(zeitText(v.t))} – ${esc(v.text)}</li>`).join('');
+  return `<div id="syncBlatt">${kopf}
+    <div class="sy-info">
+      <div>Repo: <b>${esc(SY.owner)}/${esc(SY.repo)}</b> (privat)</div>
+      <div>Status: <b>${esc(syncStatusText())}</b></div>
+      <div>Preisliste: <b>${STAMM ? 'Stand ' + esc(STAMM.stand || '?') : '⚠ fehlt – stammdaten.json ins Repo hochladen'}</b></div>
+      <div>Dieses Gerät: ${esc(geraetName())}</div>
+    </div>
+    <button class="knopf haupt" data-akt="syncJetzt" style="margin-top:14px" ${syLaeuft ? 'disabled' : ''}>🔄 Jetzt abgleichen</button>
+    ${verlauf ? `<details class="sy-verlauf"><summary>Verlauf</summary><ul>${verlauf}</ul></details>` : ''}
+    <button class="link rot" data-akt="trennen" style="margin-top:12px">Verbindung auf diesem Gerät trennen</button></div>`;
+}
+function renderSyncAnzeige() {
+  const z = $('#syncZeile'); if (z) z.innerHTML = syncZeileHtml();
+  if ($('#syncBlatt') && !$('#overlay').hidden && !$('#overlay').contains(document.activeElement)) zeigeOverlay(syncHtml());
+}
+
+/* ---------- 5. Ansichten ---------- */
+function renderKopf() {
+  const f = UI.firma;
+  document.documentElement.style.setProperty('--akzent', f ? f.farbe : '#1f2937');
+  if (window.matchMedia && !matchMedia('(prefers-color-scheme: dark)').matches)
+    document.documentElement.style.setProperty('--link', f ? f.farbe : '#1f2937');
+  const n = f ? positionen(f).length : 0;
+  $('#kopf').innerHTML = `
+    <div class="kopf-zeile">
+      ${f ? `<button class="rund zurueck" data-akt="heim" aria-label="Zurück zur Übersicht">‹</button>` : ''}
+      <div class="kopf-titel">${f ? esc(f.name) : 'Bestellungen'}
+        <div class="kopf-unter">${f ? esc(f.untertitel) : 'Lieferanten & Bestellzettel'}</div></div>
+      <button class="rund" data-akt="hilfe" aria-label="Hilfe">ℹ</button>
+    </div>
+    ${f ? `<nav class="reiter">
+      ${[['produkte', 'Produkte'], ['bestellung', 'Bestellzettel'], ['kontakt', 'Kontakt']].map(([id, t]) =>
+        `<a href="#/${f.id}/${id}" class="${UI.reiter === id ? 'aktiv' : ''}" data-reiter="${id}">${t}${id === 'bestellung'
+          ? ` <span class="marke" data-reiterzahl ${n ? '' : 'hidden'}>${n}</span>` : ''}</a>`).join('')}
+    </nav>` : ''}`;
+}
+
+function render() {
+  renderKopf();
+  const f = UI.firma, app = $('#app');
+  if (!f) app.innerHTML = startHtml();
+  else if (UI.reiter === 'bestellung') app.innerHTML = bestellungHtml(f);
+  else if (UI.reiter === 'kontakt') app.innerHTML = kontaktHtml(f);
+  else { app.innerHTML = produkteHtml(f); renderListe(); }
+}
+function neuZeichnen() { const y = window.scrollY; render(); window.scrollTo(0, y); }
+
+/* Startseite */
+function startHtml() {
+  return `
+    <p class="start-text">Lieferant antippen, um Produkte zu sehen und zu bestellen.</p>
+    ${STAMM ? '' : `<div class="karte hinweis-karte"><div class="karte-inhalt"><b>Preise und Kundennummern fehlen noch.</b><br>
+      Sie liegen geschützt in deinem privaten GitHub-Repo und kommen mit dem Abgleich.
+      <button class="knopf haupt" data-akt="abgleich" style="margin-top:10px">☁️ Abgleich einrichten</button></div></div>`}
+    <div class="kacheln">${FIRMEN.map(kachelHtml).join('')}</div>
+    <div id="syncZeile">${syncZeileHtml()}</div>
+    <button class="fuss" data-akt="info">Version ${APP_VERSION} · Info</button>`;
+}
+function kachelHtml(f) {
+  const p = positionen(f).length, aus = ausgeblendet(f).size, ges = f.artikel.length;
+  const letzte = (S.historie[f.id] || [])[0];
+  return `
+    <button class="kachel" data-akt="firma" data-id="${f.id}" style="--f1:${f.farbe};--f2:${f.farbe2 || f.farbe}">
+      <span class="band"></span>
+      <span class="k-inhalt">
+        <span class="monogramm">${esc(f.kuerzel)}</span>
+        <span class="k-text">
+          <span class="k-name">${esc(f.name)}</span>
+          <span class="k-unter">${esc(f.untertitel)}</span>
+          <span class="k-info">${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}` : ''}</span>
+        </span>
+        ${p ? `<span class="k-marke" title="Positionen im Bestellzettel">${p}</span>` : ''}
+        <span class="k-pfeil">›</span>
+      </span>
+    </button>`;
+}
+
+/* Produkte */
+function produkteHtml(f) {
+  return `
+    <div class="werkzeug">
+      <input id="suche" type="search" placeholder="Suchen: Name oder Art.-Nr." value="${esc(UI.suche)}" autocomplete="off" enterkeyhint="search">
+      <button class="knopf ${UI.bearbeiten ? 'aktiv' : ''}" data-akt="bearbeiten">${UI.bearbeiten ? 'Fertig' : 'Bearbeiten'}</button>
+    </div>
+    <div class="hinweiszeile">${esc(f.stand)}${preisHinweisVon(f) ? '<br>' + esc(preisHinweisVon(f)) : ''}</div>
+    ${UI.bearbeiten ? `<div class="info-box">Schalter aus = Produkt wird ausgeblendet.<br>Preise kannst du direkt ändern – Feld leeren = wieder Listenpreis.<br>Mit <b>Fertig</b> geht es zurück zum Bestellen.</div>` : ''}
+    <div class="liste-kopf"><button class="link" data-akt="alleKat">Alle auf-/zuklappen</button></div>
+    <div id="liste"></div>
+    <div id="leisteBox">${UI.bearbeiten ? '' : leisteHtml(f)}</div>`;
+}
+/* Summenleiste unten in der Produktliste */
+function leisteHtml(f) {
+  const pos = positionen(f);
+  if (!pos.length) return '';
+  const sum = summe(f), min = mindestwert(f), hatP = hatPreise(f), ok = hatP && min && sum >= min;
+  const status = hatP && min ? (ok ? '✓ Mindestbestellwert erreicht' : `noch ${eur(min - sum)} bis ${eur(min)}`) : '';
+  return `<a class="leiste ${ok ? 'ok' : ''}" href="#/${f.id}/bestellung">
+    <span><b>${pos.length} Pos.</b>${hatP ? ' · ' + eur(sum) + ' netto' : ''}${status ? `<small>${status}</small>` : ''}</span>
+    <span class="leiste-ziel">Bestellzettel ›</span></a>`;
+}
+function renderListe() {
+  const f = UI.firma, el = $('#liste');
+  if (!f || !el) return;
+  const q = UI.suche.trim().toLowerCase(), aus = ausgeblendet(f), bearb = UI.bearbeiten;
+  let html = '', gezeigt = 0;
+  for (const k of kategorien(f)) {
+    const alleInKat = f.artikel.filter(a => a.k === k);
+    let arts = alleInKat;
+    if (q) arts = arts.filter(a => (a.n + ' ' + a.nr + ' ' + (a.d || '') + ' ' + a.k).toLowerCase().includes(q));
+    else if (!bearb) arts = arts.filter(a => !aus.has(a.nr));
+    if (!arts.length) continue;
+    gezeigt += arts.length;
+    const offen = q || S.offen[f.id + '|' + k];
+    const bestellt = alleInKat.filter(a => menge(f, a.nr) > 0).length;
+    html += `
+      <section class="kat ${offen ? 'offen' : ''}">
+        <button class="kat-kopf" data-akt="kat" data-kat="${esc(k)}">
+          <span class="pfeil">›</span><span class="kat-name">${esc(k).replace(/ -(?=\S)/g, ' ‑')}</span>
+          <span class="zahl">${arts.length}</span>
+          <span class="marke" data-katzahl="${esc(k)}" ${bestellt ? '' : 'hidden'}>${bestellt}</span>
+        </button>
+        <div class="kat-inhalt">
+          ${bearb && !q ? `<div class="kat-alle"><button class="link" data-akt="katAn" data-kat="${esc(k)}">alle einblenden</button>
+            <button class="link" data-akt="katAus" data-kat="${esc(k)}">alle ausblenden</button></div>` : ''}
+          ${gruppenHtml(f, arts, aus, bearb)}
+        </div>
+      </section>`;
+  }
+  if (!gezeigt) html = q
+    ? `<p class="leer">Nichts gefunden für „${esc(UI.suche)}“.</p>`
+    : `<p class="leer">Alle Produkte sind ausgeblendet.<br>Über <b>Bearbeiten</b> kannst du sie wieder einblenden.</p>`;
+  if (!q && !bearb && aus.size && gezeigt)
+    html += `<p class="leer klein">${aus.size} Produkt${aus.size > 1 ? 'e' : ''} ausgeblendet · <button class="link" data-akt="bearbeiten">Bearbeiten</button></p>`;
+  el.innerHTML = html;
+}
+function gruppenHtml(f, arts, aus, bearb) {
+  const gruppen = [];
+  for (const a of arts) {
+    const g = gruppen[gruppen.length - 1];
+    if (g && g.n === a.n) g.arts.push(a); else gruppen.push({ n: a.n, arts: [a] });
+  }
+  return gruppen.map(g => g.arts.length === 1
+    ? zeileHtml(f, g.arts[0], aus, bearb, true)
+    : `<div class="gruppe"><div class="g-name">${esc(g.n)}</div>${g.arts.map(a => zeileHtml(f, a, aus, bearb, false)).join('')}</div>`
+  ).join('');
+}
+function zeileHtml(f, a, aus, bearb, mitName) {
+  const m = menge(f, a.nr), istAus = aus.has(a.nr);
+  const info = `<div class="info">${esc(gebindeText(f, a))}${a.d ? ' · ' + esc(a.d) : ''} · Art. ${esc(a.nr)}</div>`;
+  const p = preisVpe(f, a), geaendert = preisGeaendert(f, a), je = esc(einheitEinzahl(f, a)), lp = listenPreis(f, a);
+  const preis = bearb
+    ? `<label class="preisfeld">Preis je ${je}: <input data-preis data-nr="${esc(a.nr)}" type="text" inputmode="decimal"
+         value="${p !== null ? zahlDe(p) : ''}" placeholder="kein Preis"> €${geaendert && typeof lp.pvpe === 'number'
+         ? ` <span class="leise">(Liste ${eur(lp.pvpe)})</span>` : ''}</label>`
+    : p !== null ? `<div class="preis">${!geaendert && lp.ppe ? `${eur(lp.ppe)} / ${esc(a.pe)} · ` : ''}<b>${eur(p)}</b> je ${je}${geaendert ? ' <span class="leise">(eigener Preis)</span>' : ''}</div>` : '';
+  const hinweis = hinweisVon(f, a) && !geaendert ? `<div class="warn">⚠ ${esc(hinweisVon(f, a))}</div>` : '';
+  const rechts = bearb
+    ? `<label class="schalter" aria-label="sichtbar"><input type="checkbox" data-sichtbar data-nr="${esc(a.nr)}" ${istAus ? '' : 'checked'}><span></span></label>`
+    : stepperHtml(a.nr, m);
+  return `
+    <div class="art ${m ? 'hat-menge' : ''} ${istAus ? 'aus' : ''} ${mitName ? '' : 'variante'}" data-zeile="${esc(a.nr)}">
+      <div class="art-text">${mitName ? `<div class="a-name">${esc(a.n)}</div>` : ''}${info}${preis}${hinweis}
+        ${istAus && !bearb ? '<div class="aus-label">ausgeblendet</div>' : ''}</div>
+      ${rechts}
+    </div>`;
+}
+function stepperHtml(nr, m) {
+  return `<div class="stepper">
+    <button data-akt="minus" data-nr="${esc(nr)}" aria-label="weniger">−</button>
+    <input data-menge data-nr="${esc(nr)}" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="999" value="${m || ''}" placeholder="0" aria-label="Menge">
+    <button data-akt="plus" data-nr="${esc(nr)}" aria-label="mehr">+</button>
+  </div>`;
+}
+function nachMengenAenderung(f, nr) {
+  if (UI.reiter === 'bestellung') { neuZeichnen(); return; }
+  const m = menge(f, nr);
+  $$('[data-menge]').forEach(i => { if (i.dataset.nr === nr && i !== document.activeElement) i.value = m || ''; });
+  $$('[data-zeile]').forEach(z => { if (z.dataset.zeile === nr) z.classList.toggle('hat-menge', m > 0); });
+  $$('[data-katzahl]').forEach(b => {
+    const n = f.artikel.filter(a => a.k === b.dataset.katzahl && menge(f, a.nr) > 0).length;
+    b.textContent = n; b.hidden = !n;
+  });
+  const t = $('[data-reiterzahl]');
+  if (t) { const n = positionen(f).length; t.textContent = n; t.hidden = !n; }
+  const lb = $('#leisteBox');
+  if (lb && !UI.bearbeiten) lb.innerHTML = leisteHtml(f);
+}
+
+/* Bestellzettel */
+const KOPF_FELDER = [
+  ['kundennr', 'Kunden-Nr.', 'text'], ['name', 'Firma / Name', 'text'], ['abteilung', 'Abteilung', 'text'],
+  ['lieferanschrift', 'Lieferanschrift', 'area'], ['telefon', 'Tel. bei Rückfragen', 'tel'],
+  ['besteller', 'Besteller/in', 'text'], ['mindestwert', 'Mindestbestellwert (netto, €)', 'zahl'],
+  ['liefertermin', 'Gewünschter Liefertermin', 'date'], ['bemerkung', 'Bemerkung', 'area'],
+];
+function kopfSubText(k) {
+  return `Kunden-Nr. ${esc(k.kundennr || '–')} · ${k.besteller ? 'Besteller/in: ' + esc(k.besteller) : 'Besteller/in fehlt noch'}`;
+}
+/* Summe + Mindestbestellwert im Bestellzettel */
+function summenHtml(f) {
+  const min = mindestwert(f), sum = summe(f);
+  if (!hatPreise(f)) return min
+    ? `<div class="mindest">Für den Mindestbestellwert ${eur(min)} fehlen Preise – unter <b>Produkte › Bearbeiten</b> eintragen.</div>` : '';
+  let html = `<div class="summe"><span>Summe netto<small>zzgl. MwSt.</small></span><span>${eur(sum)}</span></div>`;
+  if (min) {
+    const fehlt = min - sum, pct = Math.max(0, Math.min(100, Math.round(sum / min * 100)));
+    html += `<div class="mindest ${fehlt <= 0 ? 'erreicht' : ''}">
+      <div class="balken"><span style="width:${pct}%"></span></div>
+      ${fehlt <= 0 ? `✓ Mindestbestellwert ${eur(min)} erreicht` : `Noch <b>${eur(fehlt)}</b> bis zum Mindestbestellwert ${eur(min)}`}</div>`;
+  }
+  return html;
+}
+function bestellungHtml(f) {
+  const k = kopfDaten(f), pos = positionen(f), hist = S.historie[f.id] || [];
+  const kopfOffen = UI.kopfOffen ?? !k.besteller;
+  const felder = KOPF_FELDER.map(([key, label, typ]) => `
+    <label class="feld"><span>${label}</span>${typ === 'area'
+      ? `<textarea data-kopf="${key}" rows="2">${esc(k[key])}</textarea>`
+      : typ === 'zahl'
+      ? `<input data-kopf="${key}" type="text" inputmode="decimal" value="${esc(k[key])}" placeholder="z. B. 250">`
+      : `<input data-kopf="${key}" type="${typ}" value="${esc(k[key])}" ${key === 'besteller' ? 'autocomplete="name"' : ''}>`}</label>`).join('');
+
+  const posHtml = pos.length ? pos.map(({ a, m }) => {
+    const p = preisVpe(f, a);
+    return `
+    <div class="pos">
+      <div class="art-text">
+        <div class="a-name">${esc(a.n)}</div>
+        <div class="info">${esc(gebindeText(f, a))} · Art. ${esc(a.nr)}</div>
+        <div class="preis">${p !== null ? `${m} ${esc(einheit(f, a, m))} × ${eur(p)} = <b>${eur(p * m)}</b>` : `<b>${m} ${esc(einheit(f, a, m))}</b>`}</div>
+      </div>
+      ${stepperHtml(a.nr, m)}
+    </div>`; }).join('') + `<div id="summenBox">${summenHtml(f)}</div>`
+    : `<p class="leer">Noch nichts im Bestellzettel.<br>Mengen trägst du unter <b>Produkte</b> ein.</p>`;
+
+  const histHtml = hist.length ? hist.map(h => `
+    <details class="hist">
+      <summary><b>${esc(h.datum)}${h.zeit ? ', ' + esc(h.zeit) : ''}</b>${h.weg ? ' · ' + wegText(h.weg) : ''}${h.partner ? ' · mit ' + esc(h.partner) : ''}
+        <span class="hist-sub">${h.posten.length} Pos.${h.summe ? ' · ' + eur(h.summe) : ''}${h.besteller ? ' · bestellt von ' + esc(h.besteller) : ''}</span></summary>
+      ${h.notiz ? `<div class="notiz">📝 ${esc(h.notiz)}</div>` : ''}
+      <ul>${h.posten.map(p => { const a = artikelNr(f, p.nr);
+        return `<li>${p.m} ${esc(a ? einheit(f, a, p.m) : '')} · ${esc(a ? a.n : p.nr)} <span class="leise">(${esc(a ? gebindeText(f, a) : 'Art. ' + p.nr)})</span></li>`; }).join('')}</ul>
+      <div class="hist-akt">
+        <button class="link" data-akt="histUebernehmen" data-id="${h.id}">In Bestellzettel übernehmen</button>
+        <button class="link rot" data-akt="histLoeschen" data-id="${h.id}">Löschen</button>
+      </div>
+    </details>`).join('')
+    : `<p class="leer klein">Noch keine. „Bestellt – ablegen“ legt den Bestellzettel hier ab.</p>`;
+
+  const tel = (f.kontakt.find(x => x.typ === 'tel') || {}).wert;
+  return `
+    <section class="karte klapp ${kopfOffen ? 'offen' : ''}" data-merk="kopfOffen">
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
+        <span>Kopfdaten<span class="sub" id="kopfSub">${kopfSubText(k)}</span></span></button>
+      <div class="klapp-inhalt">${felder}</div>
+    </section>
+    <section class="karte">
+      <h3>Bestellung ${esc(f.bestellweg)}</h3>
+      ${posHtml}
+    </section>
+    ${pos.length ? `<div class="aktionen">
+      ${tel ? `<a class="knopf" href="${telHref(tel)}">📞 Anrufen: ${esc(tel)}</a>` : ''}
+      <button class="knopf" data-akt="drucken">🖨 Drucken / PDF (für Fax)</button>
+      <button class="knopf ok" data-akt="ablegen">✓ Bestellt – ablegen</button>
+      <div class="klein-aktionen">
+        ${f.bestellMail ? `<button class="link" data-akt="mail">✉ E-Mail</button>` : ''}
+        ${navigator.share ? `<button class="link" data-akt="teilen">⤴ Teilen</button>` : ''}
+        <button class="link rot" data-akt="leeren">Leeren</button>
+      </div>
+    </div>` : ''}
+    <section class="karte klapp ${UI.histOffen ? 'offen' : ''}" data-merk="histOffen">
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Frühere Bestellungen (${hist.length})</span></button>
+      <div class="klapp-inhalt">${histHtml}</div>
+    </section>`;
+}
+
+/* Kontakt */
+function kontaktZeile(x) {
+  const loeschen = x.eigen !== undefined
+    ? `<button class="mini" data-akt="kontaktLoeschen" data-i="${x.eigen}" aria-label="Eintrag löschen">🗑</button>` : '';
+  const text = `<span class="kz-text"><span class="kz-label">${esc(x.label)}</span><span class="kz-wert">${esc(x.wert)}</span></span>`;
+  switch (x.typ) {
+    case 'tel': case 'mobil':
+      return `<div class="kz"><a class="kz-link" href="${telHref(x.wert)}"><span class="kz-icon gruen">${x.typ === 'mobil' ? '📱' : '📞'}</span>${text}<span class="kz-aktion gruen">Anrufen</span></a>${loeschen}</div>`;
+    case 'fax':
+      return `<div class="kz"><div class="kz-link"><span class="kz-icon">📠</span>${text}<button class="kz-aktion" data-akt="kopieren" data-wert="${esc(x.wert)}">Kopieren</button></div>${loeschen}</div>`;
+    case 'mail':
+      return `<div class="kz"><a class="kz-link" href="mailto:${esc(x.wert)}"><span class="kz-icon">✉️</span>${text}<span class="kz-aktion">Schreiben</span></a>${loeschen}</div>`;
+    case 'web':
+      return `<div class="kz"><a class="kz-link" href="${esc(webHref(x.wert))}" target="_blank" rel="noopener"><span class="kz-icon">🌐</span>${text}<span class="kz-aktion">Öffnen</span></a>${loeschen}</div>`;
+    case 'adresse':
+      return `<div class="kz"><a class="kz-link" href="${esc(kartenHref(x.wert))}" target="_blank" rel="noopener"><span class="kz-icon">📍</span>${text}<span class="kz-aktion">Karte</span></a>${loeschen}</div>`;
+    default:
+      return `<div class="kz"><div class="kz-link"><span class="kz-icon">📝</span>${text}</div>${loeschen}</div>`;
+  }
+}
+function kontaktHtml(f) {
+  const k = kopfDaten(f);
+  const eigene = (S.kontaktExtra[f.id] || []).map((x, i) => Object.assign({}, x, { eigen: i }));
+  return `
+    <section class="karte">
+      <h3>${esc(f.vollname)}</h3>
+      ${f.kontakt.map(kontaktZeile).join('')}
+    </section>
+    <section class="karte">
+      <h3>Unsere Kundennummer</h3>
+      <div class="kz"><div class="kz-link"><span class="kz-icon">🧾</span>
+        <span class="kz-text"><span class="kundennr">${esc(k.kundennr || '–')}</span><span class="kz-label">${k.kundennr
+          ? esc(k.name) + (k.abteilung ? ' · ' + esc(k.abteilung) : '') : 'kommt mit dem Abgleich (☁️ auf der Startseite)'}</span></span>
+        ${k.kundennr ? `<button class="kz-aktion" data-akt="kopieren" data-wert="${esc(k.kundennr)}">Kopieren</button>` : ''}</div></div>
+    </section>
+    ${eigene.length ? `<section class="karte"><h3>Eigene Einträge</h3>${eigene.map(kontaktZeile).join('')}</section>` : ''}
+    <section class="karte klapp ${UI.neuOffen ? 'offen' : ''}" data-merk="neuOffen">
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Kontakt hinzufügen<span class="sub">z. B. Außendienst, Ansprechpartner, Notiz</span></span></button>
+      <div class="klapp-inhalt">
+        <label class="feld"><span>Art</span><select id="nk-typ">
+          <option value="tel">Telefon</option><option value="mobil">Mobil</option><option value="fax">Fax</option>
+          <option value="mail">E-Mail</option><option value="notiz">Notiz</option></select></label>
+        <label class="feld"><span>Bezeichnung</span><input id="nk-label" placeholder="z. B. Außendienst Herr Muster"></label>
+        <label class="feld"><span>Nummer / Adresse / Text</span><input id="nk-wert"></label>
+        <button class="knopf haupt" style="margin-top:12px" data-akt="kontaktNeu">Hinzufügen</button>
+      </div>
+    </section>`;
+}
+
+/* ---------- 6. Drucken / E-Mail / Teilen / Abschließen ---------- */
+function druckHtml(f) {
+  const k = kopfDaten(f), pos = positionen(f), hatP = hatPreise(f);
+  const zeile = (l, w) => w ? `<tr><td>${l}</td><td>${esc(w).replace(/\n/g, '<br>')}</td></tr>` : '';
+  const kontakt = t => (f.kontakt.find(x => x.typ === t) || {}).wert || '';
+  return `
+    <div class="d-kopf">
+      <div><div class="d-titel">Bestellung</div><div>an ${esc(f.vollname)}</div></div>
+      <div>Datum: ${heuteDe()}</div>
+    </div>
+    <div class="d-weg">Bestellung ${esc(f.bestellweg)}</div>
+    <div class="d-daten">
+      <div><div class="t">Besteller / Lieferanschrift</div><table>
+        ${zeile('Kunden-Nr.', k.kundennr)}${zeile('Name', k.name)}${zeile('Abteilung', k.abteilung)}
+        ${zeile('Lieferanschrift', k.lieferanschrift)}${zeile('Tel. Rückfragen', k.telefon)}${zeile('Besteller/in', k.besteller)}
+        ${zeile('Wunschtermin', isoZuDe(k.liefertermin))}</table></div>
+      <div><div class="t">Lieferant</div><table>
+        ${zeile('Firma', f.vollname)}${zeile('Anschrift', kontakt('adresse'))}${zeile('Telefon', kontakt('tel'))}
+        ${zeile('Fax', kontakt('fax'))}${zeile('E-Mail', f.bestellMail)}</table></div>
+    </div>
+    <table class="d-pos">
+      <thead><tr><th>Menge</th><th>Einheit</th><th>Art.-Nr.</th><th>Bezeichnung</th>${hatP ? '<th class="r">Preis</th><th class="r">Betrag</th>' : ''}</tr></thead>
+      <tbody>${pos.map(({ a, m }) => { const p = preisVpe(f, a); return `<tr>
+        <td class="m">${m}</td><td>${esc(einheit(f, a, m))}</td><td>${esc(a.nr)}</td>
+        <td>${esc(a.n)}<div class="d-klein">${esc(gebindeText(f, a))}${a.d ? ' · ' + esc(a.d) : ''}</div></td>
+        ${hatP ? `<td class="r">${p !== null ? eur(p) : '–'}</td><td class="r">${p !== null ? eur(p * m) : '–'}</td>` : ''}</tr>`; }).join('')}</tbody>
+    </table>
+    ${hatP ? `<div class="d-summe">Summe netto: ${eur(summe(f))}<span>${esc(preisHinweisVon(f) || 'zzgl. gesetzl. MwSt.')}</span></div>` : ''}
+    ${k.bemerkung ? `<div class="d-bem"><b>Bemerkung:</b> ${esc(k.bemerkung).replace(/\n/g, '<br>')}</div>` : ''}
+    <div class="d-unterschrift"><div>Datum</div><div>Unterschrift / Stempel</div></div>
+    <div class="d-fuss">${pos.length} Position${pos.length === 1 ? '' : 'en'} · erstellt mit der App „Bestellungen“</div>`;
+}
+function drucken(f) {
+  if (!positionen(f).length) { toast('Der Bestellzettel ist leer.'); return; }
+  $('#druck').innerHTML = druckHtml(f);
+  window.print();
+}
+function bestellText(f) {
+  const k = kopfDaten(f), pos = positionen(f);
+  const betreff = `Bestellung Kunden-Nr. ${k.kundennr} – ${k.name}`;
+  let t = 'Sehr geehrte Damen und Herren,\n\nbitte liefern Sie uns folgende Artikel:\n\n';
+  for (const { a, m } of pos) t += `${m} ${einheit(f, a, m)} – Art.-Nr. ${a.nr} – ${a.n} (${gebindeText(f, a)})\n`;
+  t += `\nKunden-Nr.: ${k.kundennr}\n${k.name}${k.abteilung ? ', Abteilung ' + k.abteilung : ''}\n`;
+  t += `Lieferanschrift: ${k.lieferanschrift.replace(/\n/g, ', ')}\n`;
+  if (k.liefertermin) t += `Gewünschter Liefertermin: ${isoZuDe(k.liefertermin)}\n`;
+  if (k.telefon) t += `Tel. bei Rückfragen: ${k.telefon}\n`;
+  if (k.bemerkung) t += `Bemerkung: ${k.bemerkung}\n`;
+  t += `\nMit freundlichen Grüßen\n${k.besteller || ''}`;
+  return { betreff, text: t.trim() };
+}
+function mailHref(f) {
+  const { betreff, text } = bestellText(f);
+  return `mailto:${f.bestellMail}?subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(text)}`;
+}
+async function teilen(f) {
+  const { betreff, text } = bestellText(f);
+  try { await navigator.share({ title: betreff, text: betreff + '\n\n' + text }); } catch (e) { /* abgebrochen */ }
+}
+/* Dialog „Bestellt – ablegen“ */
+function ablegenHtml(f) {
+  const pos = positionen(f), weg = S.letzterWeg[f.id] || 'telefon';
+  const partner = [...new Set((S.historie[f.id] || []).map(h => h.partner).filter(Boolean))];
+  return `
+    <h2>Bestellung ablegen</h2>
+    <p class="leise" style="margin:0">${esc(f.name)} · ${pos.length} Position${pos.length === 1 ? '' : 'en'}${hatPreise(f) ? ' · ' + eur(summe(f)) : ''}</p>
+    <div class="feld"><span>Bestellt per</span><div class="wege">${WEGE.map(([id, ic, t]) => `
+      <label class="weg"><input type="radio" name="weg" value="${id}" ${id === weg ? 'checked' : ''}><span>${ic}<br>${t}</span></label>`).join('')}</div></div>
+    <label class="feld" id="partnerFeld" ${weg === 'telefon' ? '' : 'hidden'}><span>Gesprächspartner/in</span>
+      <input id="ab-partner" list="partnerListe" autocomplete="off" placeholder="z. B. Frau Schmidt"></label>
+    <datalist id="partnerListe">${partner.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    <label class="feld"><span>Bestelldatum</span><input id="ab-datum" type="date" value="${heuteIso()}"></label>
+    <label class="feld"><span>Notiz</span><textarea id="ab-notiz" rows="2" placeholder="z. B. Lieferung Donnerstag zugesagt"></textarea></label>
+    <button class="knopf ok" data-akt="ablegenOk">✓ Ablegen</button>`;
+}
+function ablegen(f) {
+  const pos = positionen(f);
+  if (!pos.length) { schliesseOverlay(); toast('Der Bestellzettel ist leer.'); return; }
+  const weg = ($('input[name=weg]:checked') || {}).value || 'telefon';
+  const iso = $('#ab-datum').value || heuteIso();
+  const k = kopfDaten(f);
+  const eintrag = {
+    id: Date.now(), iso, datum: isoZuDe(iso),
+    zeit: iso === heuteIso() ? new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '',
+    weg, partner: weg === 'telefon' ? $('#ab-partner').value.trim() : '', notiz: $('#ab-notiz').value.trim(),
+    besteller: k.besteller, posten: pos.map(({ a, m }) => ({ nr: a.nr, m, p: preisVpe(f, a) })), summe: summe(f),
+  };
+  S.historie[f.id] = [eintrag, ...(S.historie[f.id] || [])]
+    .sort(histSort).slice(0, 60);
+  S.letzterWeg[f.id] = weg;
+  S.mengen[f.id] = {};
+  const kk = S.kopf[f.id] || {}; delete kk.liefertermin; delete kk.bemerkung; S.kopf[f.id] = kk;
+  speichern();
+  schliesseOverlay();
+  UI.histOffen = true;
+  neuZeichnen();
+  toast('Bestellung abgelegt ✓');
+}
+function histUebernehmen(f, id) {
+  const h = (S.historie[f.id] || []).find(x => String(x.id) === String(id));
+  if (!h) return;
+  if (positionen(f).length && !confirm('Der aktuelle Bestellzettel wird ersetzt. Weiter?')) return;
+  const mm = {};
+  for (const p of h.posten) if (artikelNr(f, p.nr)) mm[p.nr] = p.m;
+  S.mengen[f.id] = mm;
+  speichern(); neuZeichnen(); window.scrollTo(0, 0);
+  toast('Bestellung vom ' + h.datum + ' übernommen');
+}
+
+/* ---------- 7. Hilfe & Info ---------- */
+function hilfeHtml() {
+  return `
+    <h2>ℹ Hilfe</h2>
+    <details open><summary>Wozu die App?</summary>
+      <p>Bestellung vorbereiten, beim Bestellen (Telefon, Fax, MDE) als Vorlage nutzen und danach ablegen – so siehst du später, wann, wie und mit wem bestellt wurde.</p></details>
+    <details><summary>Startseite</summary>
+      <p>Jede Kachel ist ein Lieferant. Die farbige Zahl zeigt, wie viele Positionen gerade im Bestellzettel stehen, darunter steht die letzte Bestellung.</p></details>
+    <details><summary>Produkte & Mengen</summary>
+      <p>Kategorien antippen zum Auf- und Zuklappen. Mit <b>+</b> und <b>−</b> trägst du die Bestellmenge ein – bei Remsgold in VPE (Verpackungseinheiten), bei Weber in Kartons bzw. Rollen. Die Zahl kannst du auch direkt eintippen.</p>
+      <p>Unten erscheint eine Leiste mit Positionen, Summe und dem Stand zum Mindestbestellwert. Antippen öffnet den Bestellzettel.</p>
+      <p>Die Suche findet Namen und Artikelnummern – auch von ausgeblendeten Produkten.</p></details>
+    <details><summary>Bearbeiten: ausblenden & Preise</summary>
+      <p><b>Bearbeiten</b> antippen: Jedes Produkt bekommt einen Schalter und ein Preisfeld. Schalter aus = Produkt verschwindet aus der Liste. Je Kategorie gibt es „alle einblenden“ / „alle ausblenden“.</p>
+      <p>Preis ändern: einfach die neue Zahl eintippen. Feld leeren = wieder der Preis aus der Liste. Bei Weber kannst du so eigene Preise eintragen. Mit <b>Fertig</b> zurück.</p></details>
+    <details><summary>Mindestbestellwert</summary>
+      <p>Im Bestellzettel unter <b>Kopfdaten</b> den Mindestbestellwert eintragen. Dann zeigt die App „noch … € bis zum Mindestbestellwert“ bzw. „✓ erreicht“.</p></details>
+    <details><summary>Bestellzettel</summary>
+      <p>Hier steht alles mit Menge. Die Kopfdaten füllst du einmal aus, sie werden gemerkt. Liefertermin und Bemerkung gelten nur für die aktuelle Bestellung.</p>
+      <p><b>📞 Anrufen</b> wählt direkt den Lieferanten. <b>🖨 Drucken</b> erstellt den Bestellzettel zum Faxen – im Druckdialog kannst du ihn auch als PDF sichern.</p></details>
+    <details><summary>Bestellt – ablegen</summary>
+      <p>Nach dem Bestellen <b>✓ Bestellt – ablegen</b> antippen und angeben, wie bestellt wurde: Telefon (mit Gesprächspartner/in), Fax, MDE oder E-Mail. Dazu Datum und eine Notiz, z. B. „Lieferung Donnerstag zugesagt“. Danach ist der Bestellzettel wieder leer.</p>
+      <p>Unter <b>Frühere Bestellungen</b> siehst du alles wieder (antippen zum Aufklappen) und kannst eine Bestellung erneut übernehmen.</p></details>
+    <details><summary>Kontakt</summary>
+      <p>Telefonnummer antippen = anrufen. Faxnummern und die Kundennummer kannst du kopieren, die Anschrift öffnet die Karte. Eigene Kontakte (z. B. Außendienst) fügst du unten hinzu.</p></details>
+    <details><summary>⚠ Orange Hinweise</summary>
+      <p>Hier war auf dem Foto der Preisliste ein Wert unklar oder passte rechnerisch nicht. Bitte mit der Papierliste vergleichen. Sobald du den Preis unter „Bearbeiten“ korrigierst, verschwindet der Hinweis.</p></details>
+    <details><summary>☁️ Abgleich einrichten</summary>
+      <p>Preise, Kundennummern und deine Bestellungen liegen in deinem <b>privaten</b> GitHub-Repo „Bestellungen-Daten“ – nicht in der App selbst. So sieht sie niemand sonst.</p>
+      <p>1. Auf github.com ein neues Repo „Bestellungen-Daten“ anlegen, <b>Private</b> wählen, die Datei stammdaten.json hochladen.<br>
+      2. Profilbild › Settings › Developer settings › Personal access tokens › <b>Fine-grained tokens</b> › „Generate new token“: Repository access „Only select repositories“ › Bestellungen-Daten; bei Permissions <b>Contents: Read and write</b>. Schlüssel kopieren – er wird nur einmal angezeigt.<br>
+      3. Hier auf der Startseite ☁️ antippen, Schlüssel einfügen, „Verbinden“.<br>
+      4. Auf dem iPad dasselbe eintragen – fertig, beide Geräte haben denselben Stand.</p>
+      <p>Der Abgleich läuft danach von selbst: beim Öffnen der App und kurz nach jeder Änderung. Bei gleichzeitigen Änderungen gewinnt die neuere.</p></details>
+    <details><summary>Wo sind meine Daten?</summary>
+      <p>Auf dem Gerät – und, wenn der Abgleich eingerichtet ist, zusätzlich in deinem privaten Repo (Datei bestellungen-daten.json). Der Schlüssel bleibt nur auf dem Gerät. Die App verbindet sich nur mit einem privaten Repo.</p></details>
+    <button class="knopf" data-akt="info">Über die App · Version ${APP_VERSION}</button>`;
+}
+function infoHtml(v) {
+  const ver = VERSIONEN.find(x => x.v === v) || VERSIONEN[0];
+  return `
+    <h2>Bestellungen</h2>
+    <p class="leise" style="margin:0">Version ${APP_VERSION}</p>
+    <label class="feld"><span>Neuerungen anzeigen für Version</span>
+      <select id="verSel">${VERSIONEN.map(x => `<option value="${x.v}" ${x.v === ver.v ? 'selected' : ''}>${x.v} – ${x.datum}</option>`).join('')}</select></label>
+    <ul id="verNeu">${ver.neu.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+    <p class="credit">Entwickelt von Christian Mättig in Kooperation mit Claude (Anthropic)</p>`;
+}
+function zeigeOverlay(html) {
+  const o = $('#overlay');
+  o.innerHTML = `<div class="blatt" role="dialog" aria-modal="true"><button class="x" data-akt="schliessen" aria-label="Schließen">✕</button>${html}</div>`;
+  o.hidden = false;
+  document.body.classList.add('modal');
+}
+function schliesseOverlay() { $('#overlay').hidden = true; document.body.classList.remove('modal'); }
+
+/* ---------- 8. Bedienung & Start ---------- */
+document.addEventListener('click', e => {
+  if (e.target.id === 'overlay') { schliesseOverlay(); return; }
+  const el = e.target.closest('[data-akt]');
+  if (!el) return;
+  const f = UI.firma, akt = el.dataset.akt;
+  switch (akt) {
+    case 'heim': location.hash = '#/'; break;
+    case 'firma': location.hash = '#/' + el.dataset.id + '/produkte'; break;
+    case 'plus': setMenge(f, el.dataset.nr, menge(f, el.dataset.nr) + 1); break;
+    case 'minus': setMenge(f, el.dataset.nr, menge(f, el.dataset.nr) - 1); break;
+    case 'kat': {
+      const sec = el.closest('.kat'), offen = !sec.classList.contains('offen');
+      sec.classList.toggle('offen', offen);
+      if (!UI.suche.trim()) { S.offen[f.id + '|' + el.dataset.kat] = offen; speichern(); }
+      break;
+    }
+    case 'alleKat': {
+      const ks = kategorien(f), alleOffen = ks.every(k => S.offen[f.id + '|' + k]);
+      ks.forEach(k => { S.offen[f.id + '|' + k] = !alleOffen; });
+      speichern(); renderListe();
+      break;
+    }
+    case 'bearbeiten': UI.bearbeiten = !UI.bearbeiten; neuZeichnen(); break;
+    case 'katAn': case 'katAus':
+      f.artikel.filter(a => a.k === el.dataset.kat).forEach(a => setSichtbar(f, a.nr, akt === 'katAn'));
+      renderListe();
+      break;
+    case 'klapp': {
+      const sec = el.closest('.klapp'), offen = !sec.classList.contains('offen');
+      sec.classList.toggle('offen', offen);
+      if (sec.dataset.merk) UI[sec.dataset.merk] = offen;
+      break;
+    }
+    case 'drucken': drucken(f); break;
+    case 'mail': location.href = mailHref(f); break;
+    case 'teilen': teilen(f); break;
+    case 'ablegen':
+      if (!positionen(f).length) { toast('Der Bestellzettel ist leer.'); break; }
+      zeigeOverlay(ablegenHtml(f));
+      break;
+    case 'ablegenOk': ablegen(f); break;
+    case 'leeren':
+      if (confirm('Bestellzettel wirklich leeren?')) { S.mengen[f.id] = {}; speichern(); neuZeichnen(); }
+      break;
+    case 'histUebernehmen': histUebernehmen(f, el.dataset.id); break;
+    case 'histLoeschen':
+      if (confirm('Diese frühere Bestellung löschen?')) {
+        S.historie[f.id] = (S.historie[f.id] || []).filter(h => String(h.id) !== el.dataset.id);
+        (S.geloescht ||= []).push(String(el.dataset.id));
+        speichern(); neuZeichnen();
+      }
+      break;
+    case 'kopieren': {
+      const w = el.dataset.wert;
+      if (navigator.clipboard) navigator.clipboard.writeText(w).then(() => toast('Kopiert: ' + w), () => toast(w));
+      else toast(w);
+      break;
+    }
+    case 'kontaktNeu': {
+      const typ = $('#nk-typ').value, label = $('#nk-label').value.trim(), wert = $('#nk-wert').value.trim();
+      if (!wert) { toast('Bitte Nummer, Adresse oder Text eintragen.'); return; }
+      const namen = { tel: 'Telefon', mobil: 'Mobil', fax: 'Fax', mail: 'E-Mail', notiz: 'Notiz' };
+      (S.kontaktExtra[f.id] ||= []).push({ typ, label: label || namen[typ], wert });
+      speichern(); UI.neuOffen = false; neuZeichnen(); toast('Kontakt gespeichert');
+      break;
+    }
+    case 'kontaktLoeschen': {
+      const liste = S.kontaktExtra[f.id] || [], i = Number(el.dataset.i);
+      if (liste[i] && confirm(`„${liste[i].label}“ löschen?`)) { liste.splice(i, 1); speichern(); neuZeichnen(); }
+      break;
+    }
+    case 'abgleich': zeigeOverlay(syncHtml()); break;
+    case 'verbinden': verbinden(); break;
+    case 'syncJetzt': syncJetzt(true); break;
+    case 'trennen':
+      if (confirm('Verbindung auf diesem Gerät trennen?\n\nDeine Daten bleiben auf dem Gerät. Zum erneuten Verbinden brauchst du den Schlüssel.')) {
+        SY = { owner: SY.owner, repo: SY.repo, verlauf: SY.verlauf }; sySave(); zeigeOverlay(syncHtml()); neuZeichnen();
+      }
+      break;
+    case 'hilfe': zeigeOverlay(hilfeHtml()); break;
+    case 'info': zeigeOverlay(infoHtml(APP_VERSION)); break;
+    case 'schliessen': schliesseOverlay(); break;
+  }
+});
+document.addEventListener('input', e => {
+  const t = e.target, f = UI.firma;
+  if (t.id === 'suche') { UI.suche = t.value; renderListe(); return; }
+  if (t.matches('[data-kopf]') && f) {
+    (S.kopf[f.id] ||= {})[t.dataset.kopf] = t.value;
+    if (t.dataset.kopf === 'besteller') S.letzterBesteller = t.value;
+    speichern();
+    const sub = $('#kopfSub'); if (sub) sub.innerHTML = kopfSubText(kopfDaten(f));
+    const sb = $('#summenBox'); if (sb && t.dataset.kopf === 'mindestwert') sb.innerHTML = summenHtml(f);
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target, f = UI.firma;
+  if (t.matches('[data-menge]')) { setMenge(f, t.dataset.nr, t.value); return; }
+  if (t.matches('[data-sichtbar]')) {
+    setSichtbar(f, t.dataset.nr, t.checked);
+    t.closest('.art').classList.toggle('aus', !t.checked);
+    return;
+  }
+  if (t.matches('[data-preis]')) {
+    setPreis(f, t.dataset.nr, t.value);
+    const p = preisVpe(f, artikelNr(f, t.dataset.nr));
+    t.value = p !== null ? zahlDe(p) : '';
+    return;
+  }
+  if (t.name === 'weg') { const pf = $('#partnerFeld'); if (pf) pf.hidden = t.value !== 'telefon'; return; }
+  if (t.id === 'verSel') zeigeOverlay(infoHtml(t.value));
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) schliesseOverlay(); });
+/* Zahlenfeld beim Antippen komplett markieren – so ersetzt die neue Zahl die alte */
+document.addEventListener('focusin', e => { if (e.target.matches('[data-menge]')) setTimeout(() => e.target.select(), 0); });
+
+function route() {
+  const [id, reiter] = location.hash.replace(/^#\/?/, '').split('/');
+  const f = firmaById(id);
+  const neueSeite = f !== UI.firma || (reiter || 'produkte') !== UI.reiter;
+  if (f !== UI.firma) { UI.bearbeiten = false; UI.suche = ''; UI.kopfOffen = null; UI.histOffen = false; UI.neuOffen = false; }
+  UI.firma = f;
+  UI.reiter = ['produkte', 'bestellung', 'kontakt'].includes(reiter) ? reiter : 'produkte';
+  render();
+  if (neueSeite) window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('storage', e => { if (e.key === SPEICHER_KEY) { S = laden(); SNAP = schnappschuss(); neuZeichnen(); } });
+SNAP = schnappschuss();
+route();
+if (syAktiv()) syncJetzt(false);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && syAktiv() && Date.now() - (SY.zuletzt || 0) > 20000) syncJetzt(false);
+});
+/* Abgleich hat während einer Eingabe etwas geändert → nach der Eingabe neu zeichnen */
+document.addEventListener('focusout', () => setTimeout(() => {
+  if (UI.spaeterZeichnen && !eingabeAktiv()) { UI.spaeterZeichnen = false; neuZeichnen(); }
+}, 80));
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
