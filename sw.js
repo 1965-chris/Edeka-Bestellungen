@@ -1,7 +1,7 @@
 /* Service Worker – Bestellungen
    Holt immer zuerst die neueste Version aus dem Netz,
    nur ohne Netz wird die gespeicherte Kopie benutzt. */
-const CACHE = 'bestellungen-v1.2';
+const CACHE = 'bestellungen-v1.4';
 const DATEIEN = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -22,7 +22,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  /* fremde Adressen (GitHub-Abgleich) und Versions-Prüfungen (?v=…) nicht anfassen */
+  if (req.method !== 'GET' || url.origin !== location.origin || url.search) return;
   e.respondWith(
     fetch(req)
       .then(res => {

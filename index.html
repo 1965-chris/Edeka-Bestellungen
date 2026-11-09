@@ -190,6 +190,15 @@ details.hist[open] summary::before{transform:rotate(90deg)}
 .sy-verlauf summary{padding:6px 0;cursor:pointer;font-weight:600}
 .sy-verlauf ul{margin:4px 0;padding-left:18px}
 
+.update-leiste{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff4e6;color:#5c3200;
+  padding:8px 12px;font-size:14.5px;border-top:1px solid rgba(0,0,0,.08)}
+.update-leiste.innen{border:1px solid #f0a040;border-radius:12px;margin:8px 0}
+.update-knopf{flex:none;border:0;border-radius:999px;background:#e8590c;color:#fff;font-weight:700;padding:8px 14px;font-size:14.5px}
+.ver-stand{font-size:14.5px;margin:2px 0 6px}
+.marke.grau{background:var(--linie);color:var(--text);font-weight:600}
+.marke.okmarke{background:var(--ok)}
+.marke.warnmarke{background:#e8590c}
+
 /* ---------- Kontakt ---------- */
 .kz{display:flex;align-items:center;border-top:1px solid var(--linie)}
 .kz:first-of-type{border-top:0}
@@ -278,8 +287,17 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.4';
 const VERSIONEN = [
+  { v: '1.4', datum: '09.11.2026', neu: [
+    'Neue Version auf GitHub? Oben erscheint „Version … ist da“ mit „Jetzt laden“ – geprüft beim Öffnen der App und alle 10 Minuten',
+    'ℹ-Fenster zeigt, ob deine Version aktuell ist',
+    'Hat das andere Gerät schon eine neuere Version abgeglichen, meldet sich dieses Gerät beim nächsten Abgleich ebenfalls',
+  ]},
+  { v: '1.3', datum: '09.11.2026', neu: [
+    'ℹ-Fenster zeigt jetzt direkt die Versionen mit ihren Neuerungen (Auswahl je Version)',
+    'Entwickler-Hinweis steht direkt im ℹ-Fenster',
+  ]},
   { v: '1.2', datum: '09.11.2026', neu: [
     'Preise, Kundennummern und Konditionen stehen nicht mehr in der App, sondern nur in deinem privaten GitHub-Repo (stammdaten.json)',
     'Abgleich mit GitHub: Mengen, eigene Preise, Kopfdaten und frühere Bestellungen sind auf iPhone und iPad gleich – die neuere Änderung gewinnt',
@@ -525,7 +543,7 @@ const SYNC_KEY = 'bestellungen.sync';
 let SY = {};
 try { SY = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { SY = {}; }
 let SNAP = null, syTimer = null, syLaeuft = false, syNochmal = false;
-const UI = { firma: null, reiter: 'produkte', bearbeiten: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false };
+const UI = { firma: null, reiter: 'produkte', bearbeiten: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false, neueVersion: '' };
 
 /* ---------- 4. Hilfsfunktionen ---------- */
 const $  = (s, r = document) => r.querySelector(s);
@@ -782,10 +800,11 @@ async function syncJetzt(vonHand) {
     for (let versuch = 1; ; versuch++) {
       const r = await ghLesen(DATEN_DATEI);
       if (r.data && r.data.app !== 'bestellungen') throw new Error('bestellungen-daten.json gehört nicht zu dieser App – nichts überschrieben');
+      if (r.data) neueVersionMelden(r.data.appVersion);
       const lokal = syncDaten(), m = mergeSync(lokal, r.data || lokal);
       if (inhalt(m) !== inhalt(lokal)) { applySync(m); zeichnen = true; }
       if (!r.data || inhalt(m) !== inhalt(r.data)) {
-        const geschrieben = await ghSchreiben(DATEN_DATEI, Object.assign({}, m, { geraet: geraetName(), gespeichert: new Date().toISOString() }), r.sha);
+        const geschrieben = await ghSchreiben(DATEN_DATEI, Object.assign({}, m, { geraet: geraetName(), appVersion: APP_VERSION, gespeichert: new Date().toISOString() }), r.sha);
         if (!geschrieben) { if (versuch < 3) continue; throw new Error('Gleichzeitige Änderung auf GitHub – bitte gleich nochmal'); }
       }
       break;
@@ -860,6 +879,38 @@ function renderSyncAnzeige() {
   if ($('#syncBlatt') && !$('#overlay').hidden && !$('#overlay').contains(document.activeElement)) zeigeOverlay(syncHtml());
 }
 
+/* ---------- 4c. Neue App-Version? ----------
+   Holt die index.html frisch von GitHub und liest dort APP_VERSION.
+   Ist sie neuer, erscheint oben „Version … ist da – Jetzt laden“. */
+const versionZahl = v => { const m = /(\d+)\.(\d+)/.exec(v || ''); return m ? +m[1] * 1000 + +m[2] : 0; };
+let updateGeprueft = 0;
+async function neuesteVersion() {
+  try {
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return null;
+    const m = /const APP_VERSION = '([^']+)'/.exec(await r.text());
+    return m ? m[1] : null;
+  } catch (e) { return null; }
+}
+function neueVersionMelden(v) {
+  if (!v || versionZahl(v) <= versionZahl(APP_VERSION) || versionZahl(v) <= versionZahl(UI.neueVersion)) return;
+  UI.neueVersion = v;
+  renderKopf();
+}
+async function updatePruefen(sofort) {
+  if (!sofort && Date.now() - updateGeprueft < 10 * 60 * 1000) return null;
+  updateGeprueft = Date.now();
+  const v = await neuesteVersion();
+  neueVersionMelden(v);
+  return v;
+}
+async function neuLaden() {
+  const k = $('.update-knopf'); if (k) { k.disabled = true; k.textContent = 'Lädt …'; }
+  /* frische Fassung in den Zwischenspeicher holen, dann neu laden */
+  try { await fetch(location.pathname, { cache: 'reload' }); } catch (e) { /* egal */ }
+  location.reload();
+}
+
 /* ---------- 5. Ansichten ---------- */
 function renderKopf() {
   const f = UI.firma;
@@ -878,7 +929,9 @@ function renderKopf() {
       ${[['produkte', 'Produkte'], ['bestellung', 'Bestellzettel'], ['kontakt', 'Kontakt']].map(([id, t]) =>
         `<a href="#/${f.id}/${id}" class="${UI.reiter === id ? 'aktiv' : ''}" data-reiter="${id}">${t}${id === 'bestellung'
           ? ` <span class="marke" data-reiterzahl ${n ? '' : 'hidden'}>${n}</span>` : ''}</a>`).join('')}
-    </nav>` : ''}`;
+    </nav>` : ''}
+    ${UI.neueVersion ? `<div class="update-leiste"><span>🔄 Version <b>${esc(UI.neueVersion)}</b> ist da.</span>
+      <button class="update-knopf" data-akt="neuLaden">Jetzt laden</button></div>` : ''}`;
 }
 
 function render() {
@@ -1311,19 +1364,30 @@ function hilfeHtml() {
       3. Hier auf der Startseite ☁️ antippen, Schlüssel einfügen, „Verbinden“.<br>
       4. Auf dem iPad dasselbe eintragen – fertig, beide Geräte haben denselben Stand.</p>
       <p>Der Abgleich läuft danach von selbst: beim Öffnen der App und kurz nach jeder Änderung. Bei gleichzeitigen Änderungen gewinnt die neuere.</p></details>
+    <details><summary>🔄 Neue Version</summary>
+      <p>Liegt auf GitHub eine neuere Version der App, erscheint oben der Hinweis „Version … ist da“. Einfach <b>Jetzt laden</b> antippen – deine Daten bleiben erhalten. Geprüft wird beim Öffnen der App und alle 10 Minuten; im ℹ-Fenster steht, ob deine Version aktuell ist.</p></details>
     <details><summary>Wo sind meine Daten?</summary>
       <p>Auf dem Gerät – und, wenn der Abgleich eingerichtet ist, zusätzlich in deinem privaten Repo (Datei bestellungen-daten.json). Der Schlüssel bleibt nur auf dem Gerät. Die App verbindet sich nur mit einem privaten Repo.</p></details>
-    <button class="knopf" data-akt="info">Über die App · Version ${APP_VERSION}</button>`;
+    <details open class="versionen"><summary>📋 Versionen & Neuerungen</summary>
+      <div class="ver-stand">Deine Version: <b>${APP_VERSION}</b> <span id="verStand" class="marke grau">prüfe …</span></div>
+      <div id="verUpdate"></div>
+      <label class="feld" style="margin-top:0"><span>Neuerungen anzeigen für Version</span>
+        <select id="verSel">${VERSIONEN.map(x => `<option value="${x.v}">${x.v} – ${x.datum}${x.v === APP_VERSION ? ' (aktuell)' : ''}</option>`).join('')}</select></label>
+      <ul id="verNeu">${neuerungenHtml(APP_VERSION)}</ul></details>
+    <p class="credit"><b>Bestellungen</b> · Version ${APP_VERSION}<br>Entwickelt von Christian Mättig in Kooperation mit Claude (Anthropic)</p>`;
 }
-function infoHtml(v) {
+async function verStandZeigen() {
+  const v = await updatePruefen(true), st = $('#verStand'), up = $('#verUpdate');
+  if (!st) return;
+  if (!v) { st.textContent = 'offline – nicht geprüft'; return; }
+  if (versionZahl(v) > versionZahl(APP_VERSION)) {
+    st.textContent = 'veraltet'; st.className = 'marke warnmarke';
+    if (up) up.innerHTML = `<div class="update-leiste innen"><span>Version <b>${esc(v)}</b> ist da.</span><button class="update-knopf" data-akt="neuLaden">Jetzt laden</button></div>`;
+  } else { st.textContent = '✓ aktuell'; st.className = 'marke okmarke'; }
+}
+function neuerungenHtml(v) {
   const ver = VERSIONEN.find(x => x.v === v) || VERSIONEN[0];
-  return `
-    <h2>Bestellungen</h2>
-    <p class="leise" style="margin:0">Version ${APP_VERSION}</p>
-    <label class="feld"><span>Neuerungen anzeigen für Version</span>
-      <select id="verSel">${VERSIONEN.map(x => `<option value="${x.v}" ${x.v === ver.v ? 'selected' : ''}>${x.v} – ${x.datum}</option>`).join('')}</select></label>
-    <ul id="verNeu">${ver.neu.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
-    <p class="credit">Entwickelt von Christian Mättig in Kooperation mit Claude (Anthropic)</p>`;
+  return ver.neu.map(n => `<li>${esc(n)}</li>`).join('');
 }
 function zeigeOverlay(html) {
   const o = $('#overlay');
@@ -1413,8 +1477,13 @@ document.addEventListener('click', e => {
         SY = { owner: SY.owner, repo: SY.repo, verlauf: SY.verlauf }; sySave(); zeigeOverlay(syncHtml()); neuZeichnen();
       }
       break;
-    case 'hilfe': zeigeOverlay(hilfeHtml()); break;
-    case 'info': zeigeOverlay(infoHtml(APP_VERSION)); break;
+    case 'hilfe': zeigeOverlay(hilfeHtml()); verStandZeigen(); break;
+    case 'neuLaden': neuLaden(); break;
+    case 'info': {
+      zeigeOverlay(hilfeHtml()); verStandZeigen();
+      const v = $('#overlay .versionen'); if (v) v.scrollIntoView({ block: 'start' });
+      break;
+    }
     case 'schliessen': schliesseOverlay(); break;
   }
 });
@@ -1444,7 +1513,7 @@ document.addEventListener('change', e => {
     return;
   }
   if (t.name === 'weg') { const pf = $('#partnerFeld'); if (pf) pf.hidden = t.value !== 'telefon'; return; }
-  if (t.id === 'verSel') zeigeOverlay(infoHtml(t.value));
+  if (t.id === 'verSel') { const l = $('#verNeu'); if (l) l.innerHTML = neuerungenHtml(t.value); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) schliesseOverlay(); });
 /* Zahlenfeld beim Antippen komplett markieren – so ersetzt die neue Zahl die alte */
@@ -1466,8 +1535,12 @@ SNAP = schnappschuss();
 route();
 if (syAktiv()) syncJetzt(false);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && syAktiv() && Date.now() - (SY.zuletzt || 0) > 20000) syncJetzt(false);
+  if (document.visibilityState !== 'visible') return;
+  if (syAktiv() && Date.now() - (SY.zuletzt || 0) > 20000) syncJetzt(false);
+  updatePruefen(false);
 });
+setTimeout(() => updatePruefen(true), 2500);
+setInterval(() => { if (document.visibilityState === 'visible') updatePruefen(false); }, 10 * 60 * 1000);
 /* Abgleich hat während einer Eingabe etwas geändert → nach der Eingabe neu zeichnen */
 document.addEventListener('focusout', () => setTimeout(() => {
   if (UI.spaeterZeichnen && !eingabeAktiv()) { UI.spaeterZeichnen = false; neuZeichnen(); }
