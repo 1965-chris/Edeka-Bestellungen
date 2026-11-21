@@ -199,6 +199,38 @@ details.hist[open] summary::before{transform:rotate(90deg)}
 .marke.okmarke{background:var(--ok)}
 .marke.warnmarke{background:#e8590c}
 
+/* ---------- Rasting (Saison) ---------- */
+.art.saison{flex-wrap:wrap}
+.art.saison .art-text{flex:1 1 60%}
+.tage{display:flex;flex-wrap:wrap;gap:8px 12px;width:100%;justify-content:flex-end;margin-top:4px}
+.tag{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tag-kopf{font-size:12.5px;font-weight:700;color:var(--leise)}
+.tag.hat .tag-kopf{color:var(--akzent)}
+.tag-kg{font-size:12.5px;color:var(--leise);min-height:16px}
+.tag.hat .tag-kg{color:var(--text);font-weight:600}
+.bearb-knoepfe{display:flex;align-items:center;gap:4px}
+.eigene-box{margin:12px;padding:12px;border:1px dashed var(--linie);border-radius:var(--r);background:var(--karte)}
+.saison-status{margin:12px;padding:12px 14px;border-radius:var(--r);background:var(--karte);border-left:5px solid var(--akzent);font-size:15.5px}
+.saison-status span{display:block;font-size:13.5px;color:var(--leise);margin-top:2px}
+.saison-status.ok{border-left-color:var(--ok)}
+.saison-status.warn{border-left-color:var(--rot)}
+.klapp-inhalt.ohne-rand{padding:0}
+.artnr{display:inline-block;font-size:12.5px;font-weight:700;background:var(--bg);border-radius:6px;padding:0 5px;margin-right:2px}
+.delta{font-size:12.5px;font-weight:700;border-radius:6px;padding:1px 6px}
+.delta.plus{background:#ffe3e3;color:#a61e1e}
+.delta.minus{background:#fff0db;color:#8a4b00}
+.aenderungen{border:1px solid #f0a040}
+.delta-zeile{padding:6px 0;border-top:1px solid var(--linie);font-size:14.5px}
+.delta-zeile:first-child{border-top:0}
+.delta-liste{padding-left:20px}
+.anruf-reihe{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.anruf-chip{background:#2f9e44;color:#fff;text-decoration:none;border-radius:999px;padding:8px 14px;font-weight:700;font-size:14.5px}
+.feld-reihe{display:flex;gap:10px}
+.feld-reihe .feld{flex:1}
+.haken{display:flex;align-items:center;gap:8px;margin-top:14px;font-weight:600}
+.haken input{width:22px;height:22px}
+.saison-info p{margin:0 0 8px;font-size:14.5px}
+
 /* ---------- Kontakt ---------- */
 .kz{display:flex;align-items:center;border-top:1px solid var(--linie)}
 .kz:first-of-type{border-top:0}
@@ -260,6 +292,7 @@ details.hist[open] summary::before{transform:rotate(90deg)}
   .d-unterschrift{display:flex;gap:40px;margin-top:46px}
   .d-unterschrift div{flex:1;border-top:1px solid #000;padding-top:3px;font-size:9pt}
   .d-fuss{margin-top:18px;font-size:8pt;color:#555}
+  .d-tag{font-size:12pt;margin:14px 0 4px;break-after:avoid}
 }
 </style>
 </head>
@@ -287,8 +320,16 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 const VERSIONEN = [
+  { v: '1.5', datum: '21.11.2026', neu: [
+    'Neue Kachel „Rasting Fisch“: Weihnachts-Vorbestellung 2026 mit allen 148 Artikeln des roten Ordersatzes',
+    'Mengen in Gebinden je Liefertag (18., 19., 21., 22., 23.12.) – daneben steht die Menge in kg bzw. Stück/Packungen',
+    'Bestellzettel nach Liefertagen sortiert, Countdown bis zur Abgabe am Fr 04.12., 12 Uhr, Liste zum Drucken',
+    '„Per MDE gesendet“ merkt sich die Bestellung – spätere Änderungen erscheinen als Nachbestellung (🔴) bzw. weniger (🟠), mit Anruf-Knopf zu den Ansprechpartnern',
+    'Eigene Artikel bei Rasting anlegen, z. B. Karpfen über den Bestpreis',
+    'Ansprechpartner von Rasting liegen im privaten Repo (neue stammdaten.json)',
+  ]},
   { v: '1.4', datum: '09.11.2026', neu: [
     'Neue Version auf GitHub? Oben erscheint „Version … ist da“ mit „Jetzt laden“ – geprüft beim Öffnen der App und alle 10 Minuten',
     'ℹ-Fenster zeigt, ob deine Version aktuell ist',
@@ -468,6 +509,207 @@ const WEBER_LISTE = {
   ],
 };
 
+/* Rasting – Fisch Vorbestell-Ordersatz Weihnachten 2026 (rote Sendeblätter)
+   Spalten: [Bezeichnung, Art.-Nr., Inhalt je Gebinde (Inh./BE), PE, Liefertage, (Hinweis)]
+   Bestellt wird in GEBINDEN: „2“ beim Lachsfilet Trim D (Inh. 5 kg) = 2 × 5 kg = 10 kg.
+   Liefertage = Tage, an denen das Blatt einen Barcode hat.
+   Sauermarinaden: Barcode steht in der Spalte 19.12., Auslieferung laut Blatt aber am 18.12.
+   Die Ansprechpartner (Handynummern) stehen NICHT hier, sondern in stammdaten.json im privaten Repo. */
+const T_FRISCH = ['22.12.', '23.12.'];   // Frischfisch: Di 22.12. oder Mi 23.12.
+const T_RAEUCHER = ['19.12.'];             // Räucherfisch: Sa 19.12.
+const T_SALAT = ['21.12.'];             // Salate / Antipasti / Backfisch: Mo 21.12.
+const T_MARINADE = ['18.12.'];             // Sauermarinaden / Salzheringe: Fr 18.12.
+const T_GLUECK = ['22.12.'];             // Fischerglück SB: nur Di 22.12.
+
+const RASTING_LISTE = {
+  'Werbeartikel': [
+    ['MSC Rotbarschfilet ohne Haut 100g+',                '1425', 5,   'kg', T_FRISCH],
+    ['Lachsfilet Trim D 5kg',                             '1290', 5,   'kg', T_FRISCH],
+    ['Victoriaseebarschfilet',                            '1311', 3,   'kg', T_FRISCH],
+    ['Thunfischfilet ca. 2-4kg',                          '1315', 3,   'kg', T_FRISCH],
+    ['Zanderfilet mit Haut vom Kaiserzander 3kg',         '1422', 3,   'kg', T_FRISCH],
+    ['Stremellachs Pfeffer 1kg',                          '1833', 1,   'kg', T_RAEUCHER],
+    ['Stremellachs natur 13-15 Stk.',                     '1824', 1.2, 'kg', T_RAEUCHER],
+    ['Black Tiger Gambas ohne Kopf 13/15, geschält',      '8114', 0.8, 'kg', T_FRISCH],
+    ['ASC Garnelensalat Portwein 1kg',                    '8210', 1,   'kg', T_SALAT],
+    ['ASC Louisiana Flusskrebs- & Garnelencocktail 1kg',  '8316', 1,   'kg', T_SALAT, 'steht auch unter Salate'],
+  ],
+  'Fischfilets': [
+    ['MSC Seelachsfilet 150g+ 5kg',                       '1272', 5,   'kg', T_FRISCH],
+    ['MSC Kabeljaufilet 200-400g',                        '1209', 5,   'kg', T_FRISCH],
+    ['MSC Kabeljauloins 150g+',                           '1256', 3.5, 'kg', T_FRISCH],
+    ['Rotbarschloins 80g+ 3kg',                           '1352', 3,   'kg', T_FRISCH],
+    ['MSC Heilbuttfilet getaut 200g+',                    '1269', 3.5, 'kg', T_FRISCH],
+    ['ASC Varlaks Lachsfilet Trimm D, 4-5 Seiten',        '1275', 6,   'kg', T_FRISCH],
+    ['Lachsrückenfilet',                                  '1381', 3,   'kg', T_FRISCH],
+    ['Lachsfilet Label Rouge mit Haut 3kg',               '1366', 3,   'kg', T_FRISCH],
+    ['MSC Schollenfilet mit weißer Haut 100g+',           '1282', 3,   'kg', T_FRISCH],
+    ['Afrikanisches Welshybridfilet, rot',                '1288', 3.5, 'kg', T_FRISCH],
+    ['MSC Steinbeißerfilet 200-800g',                     '1410', 3.5, 'kg', T_FRISCH],
+    ['Lachsforellenfilet mit Haut',                       '1230', 3.5, 'kg', T_FRISCH],
+    ['Doradenfilet, mit Haut, 100g+ 1,5kg',               '1737', 1.5, 'kg', T_FRISCH],
+    ['ASC Seesaibling Filet 200-400g 3kg',                '1280', 3,   'kg', T_FRISCH],
+    ['Seezungenfilet',                                    '1284', 1.5, 'kg', T_FRISCH],
+    ['Steinbuttfilet',                                    '1286', 3,   'kg', T_FRISCH],
+    ['Seeteufelfilet 150g+',                              '1321', 1.5, 'kg', T_FRISCH],
+    ['Karpfenfilet mit Haut',                             '1226', 3,   'kg', T_FRISCH],
+  ],
+  'Ganze Fische, Fische ohne Kopf': [
+    ['Forelle 11/17er',                                   '1223', 3.5, 'kg', T_FRISCH],
+    ['Dorade mit Kopf, ausgenommen, 300g+ 2,5kg',         '1734', 1.5, 'kg', T_FRISCH, 'Bezeichnung sagt 2,5 kg, Spalte Inhalt 1,5 kg'],
+    ['Wolfsbarsch mit Kopf, ausgenommen, 300g+ 3kg',      '1736', 3,   'kg', T_FRISCH],
+    ['Forelle rotfleischig (Lachsforelle) 6/9er',         '1229', 3.5, 'kg', T_FRISCH],
+    ['Schwarzer Heilbutt, gefroren/getaut',               '1296', 1.5, 'kg', T_FRISCH],
+    ['Lachs ca. 3-4 kg',                                  '1306', 9,   'kg', T_FRISCH],
+    ['ASC Lachs 3-4er 3,5kg',                             '1310', 3.5, 'kg', T_FRISCH],
+    ['Makrelen ausgenommen getaut 200-500g',              '1240', 3,   'kg', T_FRISCH],
+    ['MSC Scholle küchenfertig 300-600g',                 '1276', 3,   'kg', T_FRISCH],
+    ['Seezunge ganz 300-400g',                            '1398', 1.5, 'kg', T_FRISCH],
+    ['Steinbutt ganz 0-1kg',                              '1285', 3,   'kg', T_FRISCH],
+    ['Seeteufelschwänze 1-2 kg',                          '1319', 1.5, 'kg', T_FRISCH],
+    ['Seeteufelschwänze 2-4 kg',                          '1320', 3,   'kg', T_FRISCH],
+    ['Seeteufel ausgenommen mit Kopf 1 Stk.',             '1360', 4.5, 'kg', T_FRISCH],
+    ['Heringe ausgenommen ohne Kopf 1,5kg, getaut',       '1316', 1.5, 'kg', T_FRISCH],
+    ['MSC Kabeljau ohne Kopf 1kg+',                       '1238', 1.5, 'kg', T_FRISCH],
+    ['MSC Rotbarsch mit Kopf ausgen. 1,5kg',              '1407', 1.5, 'kg', T_FRISCH],
+    ['Zander mit Kopf ausg. vom Kaiserzander 1kg',        '1423', 1,   'kg', T_FRISCH],
+    ['Dorade Rosa ausg. 400g+ 1,5kg',                     '1378', 1.5, 'kg', T_FRISCH],
+  ],
+  'Sauermarinaden (Auslieferung 18.12.)': [
+    ['Gabelrollen ohne Haut 30 x ca. 50g',                '1466', 1.5, 'kg', T_MARINADE],
+    ['Bismarkhering 28 x ca. 107g',                       '1468', 3,   'kg', T_MARINADE],
+    ['Bratheringsfilets 20 x ca. 150g',                   '1471', 3,   'kg', T_MARINADE],
+    ['Bratrollmöpse 20 x ca. 150g',                       '1473', 3,   'kg', T_MARINADE],
+    ['Essigrollen 15 x ca. 200g',                         '1475', 3,   'kg', T_MARINADE],
+    ['MSC Salzheringe ausgenommen ohne Kopf, gekehlt',    '1491', 2,   'kg', T_MARINADE],
+  ],
+  'Zusatzsortiment Lagerware': [
+    ['MSC Kammmuschelfleisch refreshed',                  '1391', 1,   'kg', T_FRISCH],
+    ['MSC Greetsieler Nordseekrabben gesch. 500g',        '8991', 0.5, 'kg', T_FRISCH],
+    ['Gambas gekocht 30/40',                              '8150', 1,   'kg', T_FRISCH],
+    ['Salicornes',                                        '1287', 1,   'kg', T_FRISCH],
+    ['Gebackenes Fischfilet (Backfisch) 10 Stk.',         '1457', 2,   'kg', T_SALAT],
+    ['Fischfrikadelle gebraten 10 Stk.',                  '1458', 10,  'St', T_SALAT],
+    ['Fisch-Nuggets Kibbelinge',                          '1462', 1,   'kg', T_SALAT],
+    ['Hering gebacken',                                   '1459', 1.5, 'kg', T_SALAT],
+  ],
+  'Räucherfisch': [
+    ['Bückling, rund 5 Stk.',                             '1800', 1.2, 'kg', T_RAEUCHER],
+    ['Bückling, ausgenommen 5 Stk.',                      '1801', 0.8, 'kg', T_RAEUCHER],
+    ['Butterfisch 10-12 Stk.',                            '1804', 0.8, 'kg', T_RAEUCHER],
+    ['Forelle geräuchert 5 Stk.',                         '1806', 1,   'kg', T_RAEUCHER],
+    ['Garnelen geräuchert 31-40 Stk.',                    '1808', 0.5, 'kg', T_RAEUCHER],
+    ['Heilbutt Endstücke geräuchert 9-13 Stk.',           '1811', 1.5, 'kg', T_RAEUCHER],
+    ['Heilbutt-Stücke geräuchert 9-13 Stk.',              '1812', 2.5, 'kg', T_RAEUCHER],
+    ['Lachsheringsfilet „Brados“ 6 Stk.',                 '1816', 0.8, 'kg', T_RAEUCHER],
+    ['Geräuchertes Forellenfilet premium 500g',           '1817', 0.5, 'kg', T_RAEUCHER],
+    ['Norwegischer Räucherlachs geschnitten',             '1827', 1.2, 'kg', T_RAEUCHER],
+    ['Rogen geräuchert 3 Stk. 600g',                      '1829', 0.6, 'kg', T_RAEUCHER],
+    ['Rotbarsch geräuchert 8-10 Stk.',                    '1830', 1.5, 'kg', T_RAEUCHER],
+    ['Sprotten geräuchert 82-85 Stk.',                    '1832', 0.7, 'kg', T_RAEUCHER],
+    ['Lachspeitsche, geräuchert 300g',                    '1890', 0.3, 'kg', T_RAEUCHER],
+    ['Makrele, heißgeräuchert ca. 2,7kg',                 '1810', 0.4, 'kg', T_RAEUCHER, 'Bezeichnung sagt ca. 2,7 kg, Spalte Inhalt 0,4 kg'],
+    ['Makrele geräuchert 2,5kg',                          '6900', 2.5, 'kg', T_RAEUCHER],
+    ['Makrelen geräuchert 4 Stk. 1,2kg',                  '6901', 1.2, 'kg', T_RAEUCHER],
+    ['Makrelenfilets mixed geräuchert 800g',              '6902', 0.8, 'kg', T_RAEUCHER],
+    ['Makrelenfilet natur geräuchert ca. 800g',           '6903', 0.8, 'kg', T_RAEUCHER],
+    ['Makrelenfilets Pfeffer geräuchert 800g',            '6904', 0.8, 'kg', T_RAEUCHER],
+    ['Lachsforelle, geräuchert 2 Stk.',                   '1814', 1.2, 'kg', T_RAEUCHER],
+    ['Goldbrasse geräuchert 250g+',                       '1881', 1,   'kg', T_RAEUCHER],
+  ],
+  'Fischerglück – Fisch SB': [
+    ['Fischerglück Makrelen geräuchert SB 300g',          '1807', 3,   'PK', T_GLUECK],
+    ['Fischerglück Forelle geräuchert SB 200g',           '1813', 3,   'PK', T_GLUECK],
+    ['Fischerglück Stremellachs Natur SB 160g',           '1826', 3,   'PK', T_GLUECK],
+    ['Fischerglück Stremellachs Pfeffer SB 160g',         '1835', 3,   'PK', T_GLUECK],
+    ['Fischerglück Sprotten geräuchert 150g',             '1938', 3,   'PK', T_GLUECK],
+    ['Fischerglück Garnelen geräuchert 100g',             '1941', 3,   'PK', T_GLUECK],
+    ['Fischerglück Makrelenfilet Paprika geräuchert 100g','1952', 3,   'PK', T_GLUECK],
+    ['Fischerglück Makrelenfilet Pfeffer geräuchert 100g','1953', 3,   'PK', T_GLUECK],
+    ['Fischerglück Makrelenfilet Natur geräuchert 100g',  '1964', 3,   'PK', T_GLUECK],
+    ['Fischerglück Butterfisch geräuchert 130g',          '1965', 3,   'PK', T_GLUECK],
+    ['Fischerglück Backfisch SB 200g',                    '1840', 3,   'PK', T_GLUECK],
+    ['Fischerglück Fischfrikadellen SB 200g',             '1971', 3,   'PK', T_GLUECK],
+    ['Fischerglück Kibbelinge 150g',                      '1920', 3,   'PK', T_GLUECK],
+    ['Fischerglück gekochte Oktopusarme 200g',            '1455', 2,   'kg', T_GLUECK],
+    ['Fischerglück Lachsfilet mit Haut 200g',             '1467', 0.4, 'kg', T_GLUECK],
+    ['Fischerglück Halbe Lachsfiletseite ca. 600-800g',   '1708', 4,   'St', T_GLUECK],
+    ['Fischerglück Lachsfiletseite ca. 1000-1400g',       '1614', 4,   'PK', T_GLUECK],
+    ['Fischerglück MSC Rotbarschfilet ohne Haut 200g',    '1479', 3,   'kg', T_GLUECK],
+    ['Fischerglück MSC Kabeljaufilet ohne Haut 200g',     '1495', 0.8, 'kg', T_GLUECK],
+    ['Fischerglück MSC Seelachsfilet ohne Haut 4x200g',   '1496', 1,   'kg', T_GLUECK],
+    ['Fischerglück ASC Pangasiusfilet ohne Haut 200g',    '1613', 4,   'St', T_GLUECK],
+    ['Fischerglück Senfsauce 400g',                       '9241', 5,   'St', T_GLUECK],
+    ['Fischerglück Kräutersauce 400g',                    '9243', 5,   'St', T_GLUECK],
+    ['Fischerglück Fond für Muscheln 500g',               '9244', 5,   'PK', T_GLUECK],
+  ],
+  'Muschelspezialitäten': [
+    ['MSC BIO Sylter Muscheln, geputzt 4 x 1000g',        '1901', 4,   'PK', T_FRISCH],
+    ['Bio MSC Frische Miesmuscheln vorgekocht 8 x 1kg',   '1968', 8,   'PK', T_FRISCH],
+    ['MSC Miesmuscheln EXTRA 4 x 1500g Schale',           '1930', 4,   'PK', T_FRISCH],
+    ['MSC Miesmuscheln XL-Jumbo Spar Pack 4 x 2kg',       '1864', 4,   'PK', T_FRISCH],
+    ['Vongolen 500g',                                     '1845', 1,   'PK', T_FRISCH],
+    ['Fines de Clair mit Messer 6 Stück',                 '1387', 1,   'PK', T_FRISCH],
+    ['Felsenaustern Normandie 8 Stück',                   '1921', 1,   'PK', T_FRISCH],
+    ['Felsenaustern Fin. de Normandie 12 St.',            '1957', 12,  'St', T_FRISCH],
+  ],
+  'Salate': [
+    ['Sardellenfilets in Öl',                             '1493', 0.8, 'kg', T_SALAT],
+    ['Sardellenfilets Oriental in Öl',                    '1494', 0.8, 'kg', T_SALAT],
+    ['ASC Garnelen Bollywood',                            '1497', 1.5, 'kg', T_SALAT],
+    ['Meeresfrüchte Selection „Italia“ 900g',             '1504', 0.9, 'kg', T_SALAT],
+    ['Kartoffelsalat ca. 1kg',                            '8034', 1,   'kg', T_SALAT],
+    ['ASC Garnelen in Knoblauchöl',                       '8192', 1,   'kg', T_SALAT],
+    ['MSC Bunter Matjessalat',                            '8193', 1,   'kg', T_SALAT],
+    ['ASC Riesengarnelen Cocktail Italia',                '8203', 1,   'kg', T_SALAT],
+    ['MSC Sylter Heringstopf',                            '8232', 1,   'kg', T_SALAT],
+    ['MSC Shrimpscocktail „Miami“',                       '8235', 1,   'kg', T_SALAT],
+    ['MSC Heringshappen nach Matjesart in Senfsauce',     '8237', 1,   'kg', T_SALAT],
+    ['MSC Schwedenhappen in Kräuterdressing',             '8238', 1,   'kg', T_SALAT],
+    ['MSC Matjessahnetopf mit Apfel',                     '8242', 1,   'kg', T_SALAT],
+    ['MSC Dillhappen',                                    '8240', 1,   'kg', T_SALAT],
+    ['Meeresfrüchte Cocktail Marseille',                  '8241', 1,   'kg', T_SALAT],
+    ['MSC Heringsfilet in Sahnesauce',                    '8244', 2,   'kg', T_SALAT],
+    ['MSC roter Heringssalat 1kg',                        '8251', 1,   'kg', T_SALAT],
+    ['MSC Friesische Dillhappen (Hering)',                '8248', 1,   'kg', T_SALAT],
+    ['Flusskrebscocktail Calvados',                       '8249', 1,   'kg', T_SALAT],
+    ['ASC Garnelensalat Mango-Kokos',                     '8245', 1,   'kg', T_SALAT],
+    ['ASC Garnelen in Dillcreme',                         '8246', 1,   'kg', T_SALAT],
+    ['ASC Garnelen in Aioli',                             '8247', 1,   'kg', T_SALAT],
+    ['ASC Garnelen Mango Chili',                          '8320', 1,   'kg', T_SALAT],
+    /* 8316 Louisiana Flusskrebs- & Garnelencocktail steht auf dem Blatt auch hier – in der App nur einmal (Werbeartikel) */
+  ],
+  'Antipasti Lagerware': [
+    ['Honey Peppers gefüllt',                             '8346', 1,   'kg', T_SALAT],
+    ['Balsamico Zwiebeln',                                '8347', 1,   'kg', T_SALAT],
+    ['Grüne Oliven mit Basilikum',                        '8348', 1,   'kg', T_SALAT],
+    ['Grüne Peperoni gefüllt mit Frischkäse',             '8351', 1,   'kg', T_SALAT],
+    ['Grüne Oliven gefüllt mit Frischkäse',               '8354', 1,   'kg', T_SALAT],
+    ['Gefüllte Peppadews mit Frischkäse',                 '8355', 1,   'kg', T_SALAT],
+    ['Getrocknete Tomaten mit Kapern und Kräutern',       '8358', 1,   'kg', T_SALAT],
+    ['Feine Oliven o. Stein, geschwärzt',                 '8370', 1,   'kg', T_SALAT],
+    ['Halbgetrocknete Tomaten',                           '8391', 1,   'kg', T_SALAT],
+    ['Weinblätter, gefüllt mit Reis',                     '8396', 1,   'kg', T_SALAT],
+  ],
+};
+
+const RASTING_INFO = {
+  abgabe: 'Freitag, 04.12.2026, 12 Uhr – per MDE vom roten Sendeblatt (nur einmal senden)',
+  aenderungen: 'Zusätzliche Kundenbestellungen, Erhöhungen, Änderungen: ab Dienstag, 08.12.2026 telefonisch',
+  uebersicht: 'Ab 07.12.2026 kommt mit dem Lieferschein eine Übersicht der Weihnachtsbestellung',
+  liefertage: {
+    '18.12.': 'Fr 18.12. – Sauermarinaden / Salzheringe',
+    '19.12.': 'Sa 19.12. – Räucherfisch',
+    '21.12.': 'Mo 21.12. – Salate',
+    '22.12.': 'Di 22.12. – Frischfisch',
+    '23.12.': 'Mi 23.12. – Frischfisch',
+  },
+  hinweise: [
+    'Karpfen ausgenommen (1245) und Karpfenfilet ohne Haut (1227) werden über den Bestpreis abgefragt – nicht auf dem Blatt',
+    'CD-Ware der Deutschen See wird nicht abgefragt – wie gewohnt über den Ordersatz',
+  ],
+};
+
 function tabelleZuArtikeln(tabelle, umwandeln) {
   const liste = [];
   for (const [kategorie, zeilen] of Object.entries(tabelle))
@@ -517,13 +759,40 @@ const FIRMEN = [
     ],
     artikel: tabelleZuArtikeln(WEBER_LISTE, ([n, nr, d, inh, einheit]) => ({ n, nr, d, inh, einheit })),
   },
+  {
+    id: 'rasting',
+    name: 'Rasting Fisch',
+    vollname: 'Rasting – Fisch Vorbestell-Ordersatz',
+    untertitel: 'Weihnachts-Vorbestellung 2026',
+    kuerzel: '🐟', farbe: '#0d5c7d', farbe2: '#e8462a',
+    saison: true, ohnePreise: true,
+    stand: 'Fisch Vorbestell-Ordersatz Weihnachten 2026 · Mengen = Anzahl Gebinde (Spalte Inh./BE)',
+    bestellweg: 'per MDE vom roten Sendeblatt',
+    frist: '2026-12-04T12:00:00+01:00',
+    fristText: 'Fr 04.12.2026, 12 Uhr',
+    tage: ['18.12.', '19.12.', '21.12.', '22.12.', '23.12.'],
+    tagKurz: { '18.12.': 'Fr 18.12.', '19.12.': 'Sa 19.12.', '21.12.': 'Mo 21.12.', '22.12.': 'Di 22.12.', '23.12.': 'Mi 23.12.' },
+    gruppen: {
+      F: { name: 'Frischfisch – Di 22.12. / Mi 23.12.', tage: T_FRISCH },
+      R: { name: 'Räucherfisch – Sa 19.12.', tage: T_RAEUCHER },
+      S: { name: 'Salate / Antipasti – Mo 21.12.', tage: T_SALAT },
+      M: { name: 'Sauermarinaden – Fr 18.12.', tage: T_MARINADE },
+    },
+    vorschlaege: [
+      { n: 'Karpfen ausgenommen', nr: '1245' },
+      { n: 'Karpfenfilet ohne Haut', nr: '1227' },
+    ],
+    info: RASTING_INFO,
+    kontakt: [],
+    artikel: tabelleZuArtikeln(RASTING_LISTE, ([n, nr, inh, pe, tage, hinweis]) => ({ n, nr, artNr: nr, inh, pe, tage, hinweis })),
+  },
 ];
 
 /* ---------- 3. Speicher ---------- */
 const SPEICHER_KEY = 'bestellungen.daten.v1';
 function leererZustand() {
   return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
-           geloescht: [], zeit: {} };
+           geloescht: [], zeit: {}, eigene: {}, gesendet: {} };
 }
 function laden() {
   try {
@@ -558,13 +827,34 @@ const webHref = w => /^https?:/i.test(w) ? w : 'https://' + w;
 const kartenHref = a => 'https://maps.apple.com/?q=' + encodeURIComponent(a);
 
 const firmaById = id => FIRMEN.find(f => f.id === id) || null;
-const artikelNr = (f, nr) => f.artikel.find(a => a.nr === nr) || null;
-const kategorien = f => [...new Set(f.artikel.map(a => a.k))];
+/* Saison-Lieferant (Rasting): Ordersatz + eigene Artikel; Mengen je Liefertag unter „Art.-Nr.@Tag“ */
+function eigeneArtikel(f) {
+  if (!f.saison) return [];
+  return (S.eigene[f.id] || []).map(e => ({ k: 'Eigene Artikel', n: e.n, nr: e.id, artNr: e.nr || '', inh: e.inh || 1,
+    pe: e.pe || 'kg', tage: (f.gruppen[e.gruppe] || f.gruppen.F).tage, gruppe: e.gruppe, eigen: true, mde: e.mde === true }));
+}
+const alleArtikel = f => f.saison ? f.artikel.concat(eigeneArtikel(f)) : f.artikel;
+const artikelNr = (f, nr) => { const id = String(nr).split('@')[0]; return alleArtikel(f).find(a => a.nr === id) || null; };
+const kategorien = f => [...new Set(alleArtikel(f).map(a => a.k))];
 const menge = (f, nr) => (S.mengen[f.id] || {})[nr] || 0;
+const tagVon = key => String(key).includes('@') ? String(key).split('@')[1] : '';
 const ausgeblendet = f => new Set(S.aus[f.id] || []);
 function positionen(f) {
   const mm = S.mengen[f.id] || {};
-  return f.artikel.filter(a => mm[a.nr] > 0).map(a => ({ a, m: mm[a.nr] }));
+  if (!f.saison) return f.artikel.filter(a => mm[a.nr] > 0).map(a => ({ a, m: mm[a.nr], key: a.nr, tag: '' }));
+  const out = [];
+  for (const a of alleArtikel(f)) for (const t of a.tage) { const key = a.nr + '@' + t; if (mm[key] > 0) out.push({ a, m: mm[key], key, tag: t }); }
+  return out;
+}
+const hatMenge = (f, a) => f.saison ? a.tage.some(t => menge(f, a.nr + '@' + t) > 0) : menge(f, a.nr) > 0;
+const zahlKurz = n => Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 });
+const peText = pe => pe === 'St' ? 'St.' : pe;
+const inhaltText = (a, m) => zahlKurz(a.inh * m) + ' ' + peText(a.pe);   /* m Gebinde → Menge, z. B. „15 kg“ */
+function fristRest(f) {
+  const ms = new Date(f.frist).getTime() - Date.now();
+  if (ms <= 0) return 'Frist vorbei';
+  const t = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5);
+  return t >= 1 ? `noch ${t} Tag${t > 1 ? 'e' : ''}${t < 3 ? ' ' + h + ' Std.' : ''}` : `noch ${h} Std.`;
 }
 /* Stammdaten aus dem privaten Repo (Preise, Kundennummern, Kopfdaten) – auf dem Gerät zwischengespeichert */
 const STAMM_KEY = 'bestellungen.stamm';
@@ -600,7 +890,7 @@ function parseZahl(t) {
 }
 const zahlDe = n => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function mindestwert(f) { const v = parseZahl(kopfDaten(f).mindestwert); return v > 0 ? v : 0; }
-const einheitEinzahl = (f, a) => f.mitVpe ? 'VPE' : (a.einheit || 'Karton');
+const einheitEinzahl = (f, a) => f.saison ? 'Gebinde' : f.mitVpe ? 'VPE' : (a.einheit || 'Karton');
 const heuteIso = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const WEGE = [['telefon', '📞', 'Telefon'], ['fax', '📠', 'Fax'], ['mde', '📟', 'MDE'], ['mail', '✉️', 'E-Mail']];
 const wegName = w => (WEGE.find(([id]) => id === w) || [])[2] || '';
@@ -613,11 +903,13 @@ function kopfDaten(f) {
 }
 /* „6 × 1 l Flasche“ bzw. „Karton à 2.000 Stück“ */
 function gebindeText(f, a) {
+  if (f.saison) return 'Gebinde ' + zahlKurz(a.inh) + ' ' + peText(a.pe);
   if (f.mitVpe) return (a.vpe > 1 ? a.vpe + ' × ' : '') + a.inh + ' ' + a.geb;
   return a.einheit === 'Rolle' ? 'je Rolle' : 'Karton à ' + a.inh;
 }
 /* Einheit der Bestellmenge: VPE bzw. Karton/Kartons, Rolle/Rollen */
 function einheit(f, a, m) {
+  if (f.saison) return 'Geb.';
   if (f.mitVpe) return 'VPE';
   const e = a.einheit || 'Karton';
   if (m === 1) return e;
@@ -654,7 +946,7 @@ function toast(text) {
                                (schreibt die App selbst; die neuere Änderung gewinnt)
    Der Schlüssel bleibt nur auf diesem Gerät. Hochgeladen wird nur nach erfolgreichem Abruf. */
 const STAMM_DATEI = 'stammdaten.json', DATEN_DATEI = 'bestellungen-daten.json';
-const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra'];
+const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra', 'eigene', 'gesendet'];
 const GLOBAL = ['letzterWeg', 'letzterBesteller'];
 const sySave = () => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(SY)); } catch (e) { /* egal */ } };
 const syAktiv = () => !!(SY.token && SY.owner && SY.repo);
@@ -956,8 +1248,9 @@ function startHtml() {
     <button class="fuss" data-akt="info">Version ${APP_VERSION} · Info</button>`;
 }
 function kachelHtml(f) {
-  const p = positionen(f).length, aus = ausgeblendet(f).size, ges = f.artikel.length;
+  const p = positionen(f).length, aus = ausgeblendet(f).size, ges = alleArtikel(f).length;
   const letzte = (S.historie[f.id] || [])[0];
+  const gs = f.saison && S.gesendet[f.id];
   return `
     <button class="kachel" data-akt="firma" data-id="${f.id}" style="--f1:${f.farbe};--f2:${f.farbe2 || f.farbe}">
       <span class="band"></span>
@@ -966,7 +1259,9 @@ function kachelHtml(f) {
         <span class="k-text">
           <span class="k-name">${esc(f.name)}</span>
           <span class="k-unter">${esc(f.untertitel)}</span>
-          <span class="k-info">${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}` : ''}</span>
+          <span class="k-info">${f.saison
+            ? `${ges} Artikel<br>${gs ? `✓ per MDE gesendet ${esc(gs.datum)}` : `📟 Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}`
+            : `${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}` : ''}`}</span>
         </span>
         ${p ? `<span class="k-marke" title="Positionen im Bestellzettel">${p}</span>` : ''}
         <span class="k-pfeil">›</span>
@@ -981,16 +1276,26 @@ function produkteHtml(f) {
       <input id="suche" type="search" placeholder="Suchen: Name oder Art.-Nr." value="${esc(UI.suche)}" autocomplete="off" enterkeyhint="search">
       <button class="knopf ${UI.bearbeiten ? 'aktiv' : ''}" data-akt="bearbeiten">${UI.bearbeiten ? 'Fertig' : 'Bearbeiten'}</button>
     </div>
-    <div class="hinweiszeile">${esc(f.stand)}${preisHinweisVon(f) ? '<br>' + esc(preisHinweisVon(f)) : ''}</div>
-    ${UI.bearbeiten ? `<div class="info-box">Schalter aus = Produkt wird ausgeblendet.<br>Preise kannst du direkt ändern – Feld leeren = wieder Listenpreis.<br>Mit <b>Fertig</b> geht es zurück zum Bestellen.</div>` : ''}
+    <div class="hinweiszeile">${esc(f.stand)}${preisHinweisVon(f) ? '<br>' + esc(preisHinweisVon(f)) : ''}${f.saison
+      ? `<br>📟 Abgabe per MDE: <b>${esc(f.fristText)}</b> · ${esc(fristRest(f))}` : ''}</div>
+    ${UI.bearbeiten ? `<div class="info-box">Schalter aus = ${f.saison ? 'Artikel' : 'Produkt'} wird ausgeblendet.${f.ohnePreise
+      ? '<br>Eigene Artikel bearbeitest du mit ✏️.' : '<br>Preise kannst du direkt ändern – Feld leeren = wieder Listenpreis.'}<br>Mit <b>Fertig</b> geht es zurück zum Bestellen.</div>` : ''}
     <div class="liste-kopf"><button class="link" data-akt="alleKat">Alle auf-/zuklappen</button></div>
     <div id="liste"></div>
+    ${f.saison ? eigeneLeisteHtml(f) : ''}
     <div id="leisteBox">${UI.bearbeiten ? '' : leisteHtml(f)}</div>`;
 }
 /* Summenleiste unten in der Produktliste */
 function leisteHtml(f) {
   const pos = positionen(f);
   if (!pos.length) return '';
+  if (f.saison) {
+    const geb = pos.reduce((s, p) => s + p.m, 0), n = saisonDeltas(f).length, gs = S.gesendet[f.id];
+    return `<a class="leiste" href="#/${f.id}/bestellung">
+      <span><b>${pos.length} Pos.</b> · ${geb} Gebinde<small>${gs ? '✓ per MDE gesendet' + (n ? ` · ${n} Änderung${n > 1 ? 'en' : ''} offen` : '')
+        : `Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}</small></span>
+      <span class="leiste-ziel">Bestellzettel ›</span></a>`;
+  }
   const sum = summe(f), min = mindestwert(f), hatP = hatPreise(f), ok = hatP && min && sum >= min;
   const status = hatP && min ? (ok ? '✓ Mindestbestellwert erreicht' : `noch ${eur(min - sum)} bis ${eur(min)}`) : '';
   return `<a class="leiste ${ok ? 'ok' : ''}" href="#/${f.id}/bestellung">
@@ -1003,14 +1308,14 @@ function renderListe() {
   const q = UI.suche.trim().toLowerCase(), aus = ausgeblendet(f), bearb = UI.bearbeiten;
   let html = '', gezeigt = 0;
   for (const k of kategorien(f)) {
-    const alleInKat = f.artikel.filter(a => a.k === k);
+    const alleInKat = alleArtikel(f).filter(a => a.k === k);
     let arts = alleInKat;
-    if (q) arts = arts.filter(a => (a.n + ' ' + a.nr + ' ' + (a.d || '') + ' ' + a.k).toLowerCase().includes(q));
+    if (q) arts = arts.filter(a => (a.n + ' ' + a.nr + ' ' + (a.artNr || '') + ' ' + (a.d || '') + ' ' + a.k).toLowerCase().includes(q));
     else if (!bearb) arts = arts.filter(a => !aus.has(a.nr));
     if (!arts.length) continue;
     gezeigt += arts.length;
     const offen = q || S.offen[f.id + '|' + k];
-    const bestellt = alleInKat.filter(a => menge(f, a.nr) > 0).length;
+    const bestellt = alleInKat.filter(a => hatMenge(f, a)).length;
     html += `
       <section class="kat ${offen ? 'offen' : ''}">
         <button class="kat-kopf" data-akt="kat" data-kat="${esc(k)}">
@@ -1044,6 +1349,7 @@ function gruppenHtml(f, arts, aus, bearb) {
   ).join('');
 }
 function zeileHtml(f, a, aus, bearb, mitName) {
+  if (f.saison) return zeileSaisonHtml(f, a, aus, bearb);
   const m = menge(f, a.nr), istAus = aus.has(a.nr);
   const info = `<div class="info">${esc(gebindeText(f, a))}${a.d ? ' · ' + esc(a.d) : ''} · Art. ${esc(a.nr)}</div>`;
   const p = preisVpe(f, a), geaendert = preisGeaendert(f, a), je = esc(einheitEinzahl(f, a)), lp = listenPreis(f, a);
@@ -1063,6 +1369,34 @@ function zeileHtml(f, a, aus, bearb, mitName) {
       ${rechts}
     </div>`;
 }
+/* Rasting: je Liefertag ein Zähler für die Anzahl Gebinde, darunter die Menge in kg/St./PK */
+function zeileSaisonHtml(f, a, aus, bearb) {
+  const istAus = aus.has(a.nr);
+  const info = `<div class="info">${esc(gebindeText(f, a))}${a.artNr ? ' · Art. ' + esc(a.artNr) : ''}${a.eigen
+    ? (a.mde ? ' · aufs rote Blatt' : ' · <b>nicht auf dem roten Blatt</b>') + ' · ' + esc((f.gruppen[a.gruppe] || {}).name || '') : ''}</div>`;
+  const hinweis = a.hinweis ? `<div class="warn">⚠ ${esc(a.hinweis)}</div>` : '';
+  const rechts = bearb ? `<div class="bearb-knoepfe">${a.eigen ? `<button class="mini" data-akt="eigenBearb" data-id="${esc(a.nr)}" aria-label="Bearbeiten">✏️</button>` : ''}
+      <label class="schalter" aria-label="sichtbar"><input type="checkbox" data-sichtbar data-nr="${esc(a.nr)}" ${istAus ? '' : 'checked'}><span></span></label></div>` : '';
+  const tage = bearb ? '' : `<div class="tage">${a.tage.map(t => {
+    const key = a.nr + '@' + t, m = menge(f, key);
+    return `<div class="tag ${m ? 'hat' : ''}"><div class="tag-kopf">${esc(f.tagKurz[t])}</div>${stepperHtml(key, m)}
+      <div class="tag-kg" data-kg="${esc(key)}">${m ? '= ' + esc(inhaltText(a, m)) : '&nbsp;'}</div></div>`; }).join('')}</div>`;
+  return `
+    <div class="art saison ${hatMenge(f, a) ? 'hat-menge' : ''} ${istAus ? 'aus' : ''}" data-zeile="${esc(a.nr)}">
+      <div class="art-text"><div class="a-name">${esc(a.n)}</div>${info}${hinweis}${istAus && !bearb ? '<div class="aus-label">ausgeblendet</div>' : ''}</div>
+      ${rechts}${tage}
+    </div>`;
+}
+/* Rasting: eigene Artikel anlegen + Vorschläge (Karpfen über den Bestpreis) */
+function eigeneLeisteHtml(f) {
+  const vorhanden = new Set((S.eigene[f.id] || []).map(e => e.nr));
+  const vorschlaege = (f.vorschlaege || []).filter(v => !vorhanden.has(v.nr));
+  return `<div class="eigene-box">
+    <button class="knopf" data-akt="eigenNeu">＋ Eigenen Artikel anlegen</button>
+    ${vorschlaege.length ? `<p class="leise klein" style="margin:10px 2px 4px">Nicht auf dem roten Blatt (laut Rasting über den Bestpreis):</p>
+      ${vorschlaege.map(v => `<button class="link" data-akt="eigenVorschlag" data-nr="${esc(v.nr)}">＋ ${esc(v.n)} (${esc(v.nr)})</button>`).join('<br>')}` : ''}
+  </div>`;
+}
 function stepperHtml(nr, m) {
   return `<div class="stepper">
     <button data-akt="minus" data-nr="${esc(nr)}" aria-label="weniger">−</button>
@@ -1072,11 +1406,12 @@ function stepperHtml(nr, m) {
 }
 function nachMengenAenderung(f, nr) {
   if (UI.reiter === 'bestellung') { neuZeichnen(); return; }
-  const m = menge(f, nr);
+  const m = menge(f, nr), art = artikelNr(f, nr), id = String(nr).split('@')[0];
   $$('[data-menge]').forEach(i => { if (i.dataset.nr === nr && i !== document.activeElement) i.value = m || ''; });
-  $$('[data-zeile]').forEach(z => { if (z.dataset.zeile === nr) z.classList.toggle('hat-menge', m > 0); });
+  $$('[data-zeile]').forEach(z => { if (z.dataset.zeile === id) z.classList.toggle('hat-menge', art ? hatMenge(f, art) : m > 0); });
+  $$('[data-kg]').forEach(k => { if (k.dataset.kg === nr && art) { k.innerHTML = m ? '= ' + esc(inhaltText(art, m)) : '&nbsp;'; k.parentElement.classList.toggle('hat', m > 0); } });
   $$('[data-katzahl]').forEach(b => {
-    const n = f.artikel.filter(a => a.k === b.dataset.katzahl && menge(f, a.nr) > 0).length;
+    const n = alleArtikel(f).filter(a => a.k === b.dataset.katzahl && hatMenge(f, a)).length;
     b.textContent = n; b.hidden = !n;
   });
   const t = $('[data-reiterzahl]');
@@ -1110,6 +1445,7 @@ function summenHtml(f) {
   return html;
 }
 function bestellungHtml(f) {
+  if (f.saison) return bestellungSaisonHtml(f);
   const k = kopfDaten(f), pos = positionen(f), hist = S.historie[f.id] || [];
   const kopfOffen = UI.kopfOffen ?? !k.besteller;
   const felder = KOPF_FELDER.map(([key, label, typ]) => `
@@ -1173,6 +1509,195 @@ function bestellungHtml(f) {
     </section>`;
 }
 
+/* ---------- Rasting: Bestellzettel je Liefertag, „Per MDE gesendet“, Änderungen ---------- */
+function saisonDeltas(f) {
+  const gs = S.gesendet[f.id];
+  if (!gs || !gs.mengen) return [];
+  const mm = S.mengen[f.id] || {}, alle = alleArtikel(f), out = [];
+  for (const key of new Set([...Object.keys(gs.mengen), ...Object.keys(mm)])) {
+    const d = (mm[key] || 0) - (gs.mengen[key] || 0), a = artikelNr(f, key);
+    if (d && a) out.push({ key, a, tag: tagVon(key), d, vorher: gs.mengen[key] || 0, jetzt: mm[key] || 0 });
+  }
+  return out.sort((x, y) => f.tage.indexOf(x.tag) - f.tage.indexOf(y.tag) || alle.indexOf(x.a) - alle.indexOf(y.a));
+}
+function posSaisonHtml(f, p, gs, mitTag) {
+  const d = gs ? p.m - (gs.mengen[p.key] || 0) : 0;
+  return `
+    <div class="pos">
+      <div class="art-text">
+        <div class="a-name">${p.a.artNr ? `<span class="artnr">${esc(p.a.artNr)}</span> ` : ''}${esc(p.a.n)}</div>
+        <div class="info">${esc(gebindeText(f, p.a))}${mitTag ? ' · ' + esc(f.tagKurz[p.tag]) : ''}</div>
+        <div class="preis"><b>${p.m} Geb. = ${esc(inhaltText(p.a, p.m))}</b>${d ? ` <span class="delta ${d > 0 ? 'plus' : 'minus'}">${d > 0 ? '+' : ''}${d} seit dem Senden</span>` : ''}</div>
+      </div>
+      ${stepperHtml(p.key, p.m)}
+    </div>`;
+}
+function ansprechpartnerHtml(f, kompakt) {
+  const liste = (stammFirma(f).kontakt || []).filter(x => x.typ === 'tel' || x.typ === 'mobil');
+  if (!liste.length) return `<p class="leise klein">Ansprechpartner kommen mit dem Abgleich (stammdaten.json im privaten Repo).</p>`;
+  return kompakt
+    ? `<div class="anruf-reihe">${liste.map(x => `<a class="anruf-chip" href="${telHref(x.wert)}">📞 ${esc(x.label.split(' ')[0])}</a>`).join('')}</div>`
+    : liste.map(kontaktZeile).join('');
+}
+function bestellungSaisonHtml(f) {
+  const pos = positionen(f), gs = S.gesendet[f.id], deltas = saisonDeltas(f), hist = S.historie[f.id] || [];
+  const vorbei = new Date(f.frist).getTime() <= Date.now();
+  const status = gs
+    ? `<div class="saison-status ok">✓ <b>Per MDE gesendet</b> am ${esc(gs.datum)}${gs.uhr ? ', ' + esc(gs.uhr) + ' Uhr' : ''}
+        <span>${esc(f.info.aenderungen)}</span></div>`
+    : `<div class="saison-status ${vorbei ? 'warn' : ''}">📟 Abgabe per MDE: <b>${esc(f.fristText)}</b>
+        <span>${esc(fristRest(f))} · nur einmal senden, nur vom roten Sendeblatt</span></div>`;
+  const tage = f.tage.map(t => {
+    const liste = pos.filter(p => p.tag === t && p.a.mde !== false);
+    if (!liste.length) return '';
+    const geb = liste.reduce((s, p) => s + p.m, 0);
+    return `
+      <section class="karte klapp offen">
+        <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
+          <span>${esc(f.info.liefertage[t])}<span class="sub">${liste.length} Pos. · ${geb} Gebinde</span></span></button>
+        <div class="klapp-inhalt ohne-rand">${liste.map(p => posSaisonHtml(f, p, gs, false)).join('')}</div>
+      </section>`;
+  }).join('');
+  const anders = pos.filter(p => p.a.mde === false);
+  const andersHtml = anders.length ? `
+    <section class="karte klapp offen">
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
+        <span>Nicht auf dem roten Blatt<span class="sub">${anders.length} Pos. · z. B. über den Bestpreis – getrennt bestellen</span></span></button>
+      <div class="klapp-inhalt ohne-rand">${anders.map(p => posSaisonHtml(f, p, gs, true)).join('')}</div>
+    </section>` : '';
+  const aenderungen = gs && deltas.length ? `
+    <section class="karte aenderungen">
+      <h3>Änderungen seit dem Senden (${deltas.length})</h3>
+      <div class="karte-inhalt">
+        ${deltas.map(x => `<div class="delta-zeile ${x.d > 0 ? 'plus' : 'minus'}">
+          <b>${x.d > 0 ? '🔴 +' + x.d : '🟠 ' + x.d} Geb.</b> ${esc(x.a.n)} <span class="leise">· ${esc(f.tagKurz[x.tag])} · vorher ${x.vorher}, jetzt ${x.jetzt}</span></div>`).join('')}
+        <p class="leise klein">🔴 nachbestellen · 🟠 weniger als gesendet – ${esc(f.info.aenderungen)}</p>
+        ${ansprechpartnerHtml(f, true)}
+        <button class="knopf ok" data-akt="aenderungDurch" style="margin-top:12px">✓ Änderungen telefonisch durchgegeben</button>
+      </div>
+    </section>` : '';
+  const histHtml = hist.length ? hist.map(h => `
+    <details class="hist">
+      <summary><b>${esc(h.datum)}${h.zeit ? ', ' + esc(h.zeit) : ''}</b>${h.weg ? ' · ' + wegText(h.weg) : ''}${h.partner ? ' · mit ' + esc(h.partner) : ''}
+        <span class="hist-sub">${h.posten.length} Pos.${h.besteller ? ' · ' + esc(h.besteller) : ''}</span></summary>
+      ${h.notiz ? `<div class="notiz">📝 ${esc(h.notiz)}</div>` : ''}
+      <ul>${h.posten.map(p => { const a = artikelNr(f, p.nr), t = tagVon(p.nr);
+        return `<li>${h.weg === 'telefon' && p.m > 0 ? '+' : ''}${p.m} Geb. · ${esc(a ? a.n : p.nr)} <span class="leise">(${esc(f.tagKurz[t] || t)})</span></li>`; }).join('')}</ul>
+      <div class="hist-akt"><span></span><button class="link rot" data-akt="histLoeschen" data-id="${h.id}">Löschen</button></div>
+    </details>`).join('')
+    : `<p class="leer klein">Noch nichts. Hier erscheinen „Per MDE gesendet“ und telefonische Änderungen.</p>`;
+  return `
+    ${status}
+    ${aenderungen}
+    ${pos.length ? tage + andersHtml : `<p class="leer">Noch keine Mengen.<br>Unter <b>Produkte</b> trägst du je Liefertag die Anzahl <b>Gebinde</b> ein.</p>`}
+    <div class="aktionen">
+      ${!gs && pos.length ? `<button class="knopf ok" data-akt="mdeGesendet">📟 Per MDE gesendet ✓</button>` : ''}
+      ${pos.length ? `<button class="knopf" data-akt="drucken">🖨 Liste je Liefertag drucken / PDF</button>` : ''}
+      <div class="klein-aktionen">
+        ${gs ? `<button class="link" data-akt="gesendetZurueck">„Gesendet“ zurücknehmen</button>` : ''}
+        ${!gs && pos.length ? `<button class="link rot" data-akt="leeren">Leeren</button>` : ''}
+      </div>
+    </div>
+    <section class="karte klapp ${UI.histOffen ? 'offen' : ''}" data-merk="histOffen">
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Verlauf (${hist.length})</span></button>
+      <div class="klapp-inhalt">${histHtml}</div>
+    </section>`;
+}
+function histEintrag(f, weg, partner, notiz, posten) {
+  const iso = heuteIso();
+  const e = { id: Date.now(), iso, datum: isoZuDe(iso), zeit: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+              weg, partner, notiz, besteller: kopfDaten(f).besteller, posten, summe: 0 };
+  S.historie[f.id] = [e, ...(S.historie[f.id] || [])].sort(histSort).slice(0, 60);
+}
+function mdeGesendet(f) {
+  const pos = positionen(f);
+  if (!pos.length) return;
+  if (!confirm('Bestellung als „per MDE gesendet“ merken?\n\nDie App merkt sich die Mengen. Spätere Änderungen zeigt sie als Nachbestellung bzw. „zu viel“.')) return;
+  const jetzt = new Date(), mengen = {};
+  pos.forEach(p => { mengen[p.key] = p.m; });
+  S.gesendet[f.id] = { zeit: jetzt.getTime(), datum: heuteDe(), uhr: jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }), mengen };
+  histEintrag(f, 'mde', '', 'Weihnachtsbestellung per MDE gesendet', pos.map(p => ({ nr: p.key, m: p.m })));
+  speichern(); neuZeichnen(); window.scrollTo(0, 0);
+  toast('Als gesendet gemerkt ✓');
+}
+function aenderungHtml(f) {
+  const d = saisonDeltas(f);
+  const namen = [...new Set([...(stammFirma(f).kontakt || []).map(k => k.label), ...(S.historie[f.id] || []).map(h => h.partner).filter(Boolean)])];
+  return `
+    <h2>Änderungen durchgegeben</h2>
+    <ul class="delta-liste">${d.map(x => `<li><b>${x.d > 0 ? '+' : ''}${x.d} Geb.</b> ${esc(x.a.n)} <span class="leise">(${esc(f.tagKurz[x.tag])})</span></li>`).join('')}</ul>
+    <label class="feld"><span>Gesprächspartner/in bei Rasting</span><input id="ae-partner" list="ae-namen" autocomplete="off"></label>
+    <datalist id="ae-namen">${namen.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    <label class="feld"><span>Notiz</span><textarea id="ae-notiz" rows="2" placeholder="z. B. zugesagt, kommt mit der Lieferung am 22.12."></textarea></label>
+    <button class="knopf ok" data-akt="aenderungOk" style="margin-top:14px">✓ Speichern</button>`;
+}
+function aenderungOk(f) {
+  const d = saisonDeltas(f);
+  if (!d.length) { schliesseOverlay(); return; }
+  histEintrag(f, 'telefon', $('#ae-partner').value.trim(), $('#ae-notiz').value.trim(), d.map(x => ({ nr: x.key, m: x.d })));
+  const neu = {};
+  for (const [k, v] of Object.entries(S.mengen[f.id] || {})) if (v > 0) neu[k] = v;
+  S.gesendet[f.id] = Object.assign({}, S.gesendet[f.id], { mengen: neu });
+  speichern(); schliesseOverlay(); neuZeichnen();
+  toast('Änderungen gemerkt ✓');
+}
+/* Eigene Artikel (nur Rasting) */
+function eigenHtml(f, id) {
+  const e = id ? (S.eigene[f.id] || []).find(x => x.id === id) : null;
+  return `
+    <h2>${e ? 'Eigenen Artikel bearbeiten' : 'Eigener Artikel'}</h2>
+    <label class="feld"><span>Bezeichnung</span><input id="ea-n" value="${esc(e ? e.n : '')}" placeholder="z. B. Karpfen ausgenommen"></label>
+    <label class="feld"><span>Art.-Nr. (falls vorhanden)</span><input id="ea-nr" inputmode="numeric" value="${esc(e ? e.nr : '')}"></label>
+    <div class="feld-reihe">
+      <label class="feld"><span>Inhalt je Gebinde</span><input id="ea-inh" inputmode="decimal" value="${e ? zahlKurz(e.inh) : '1'}"></label>
+      <label class="feld"><span>Einheit</span><select id="ea-pe">${['kg', 'St', 'PK'].map(x => `<option value="${x}" ${(e ? e.pe : 'kg') === x ? 'selected' : ''}>${peText(x)}</option>`).join('')}</select></label>
+    </div>
+    <label class="feld"><span>Liefertag</span><select id="ea-gruppe">${Object.entries(f.gruppen).map(([g, x]) =>
+      `<option value="${g}" ${(e ? e.gruppe : 'F') === g ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
+    <label class="haken"><input type="checkbox" id="ea-mde" ${e && e.mde ? 'checked' : ''}> Steht auf dem roten Sendeblatt (MDE)</label>
+    <p class="leise klein">Ohne Haken erscheint der Artikel im Bestellzettel unter „Nicht auf dem roten Blatt“ – z. B. Karpfen über den Bestpreis.</p>
+    <button class="knopf ok" data-akt="eigenSpeichern" data-id="${esc(id || '')}" style="margin-top:12px">Speichern</button>
+    ${e ? `<button class="link rot" data-akt="eigenLoeschen" data-id="${esc(id)}" style="margin-top:10px">Artikel löschen</button>` : ''}`;
+}
+function eigenSpeichern(f, id) {
+  const n = $('#ea-n').value.trim(), nr = $('#ea-nr').value.trim();
+  if (!n) { toast('Bitte eine Bezeichnung eintragen.'); return; }
+  if (nr && f.artikel.some(a => a.artNr === nr)) { toast('Art.-Nr. ' + nr + ' steht schon im Ordersatz.'); return; }
+  const inh = parseZahl($('#ea-inh').value);
+  const e = { id: id || 'e' + Date.now().toString(36), n, nr, inh: inh > 0 ? inh : 1, pe: $('#ea-pe').value, gruppe: $('#ea-gruppe').value, mde: $('#ea-mde').checked };
+  const liste = (S.eigene[f.id] ||= []), i = liste.findIndex(x => x.id === e.id);
+  if (i >= 0) liste[i] = e; else liste.push(e);
+  const tage = f.gruppen[e.gruppe].tage, mm = S.mengen[f.id] || {};
+  for (const k of Object.keys(mm)) if (k.startsWith(e.id + '@') && !tage.includes(tagVon(k))) delete mm[k];
+  S.offen[f.id + '|Eigene Artikel'] = true;
+  speichern(); schliesseOverlay(); neuZeichnen();
+  toast('Gespeichert ✓');
+}
+function eigenLoeschen(f, id) {
+  const liste = S.eigene[f.id] || [], e = liste.find(x => x.id === id);
+  if (!e || !confirm(`„${e.n}“ löschen? Eingetragene Mengen dieses Artikels gehen mit.`)) return;
+  S.eigene[f.id] = liste.filter(x => x.id !== id);
+  const mm = S.mengen[f.id] || {};
+  for (const k of Object.keys(mm)) if (k.startsWith(id + '@')) delete mm[k];
+  speichern(); schliesseOverlay(); neuZeichnen();
+}
+function druckSaisonHtml(f) {
+  const pos = positionen(f), gs = S.gesendet[f.id];
+  const tabelle = (liste, mitTag) => `<table class="d-pos"><thead><tr><th>Art.-Nr.</th><th>Bezeichnung</th><th class="r">Gebinde</th><th class="r">Inhalt/Geb.</th><th class="r">Menge</th></tr></thead>
+    <tbody>${liste.map(p => `<tr><td>${esc(p.a.artNr || '')}</td><td>${esc(p.a.n)}${mitTag ? ' <span class="d-klein">(' + esc(f.tagKurz[p.tag]) + ')</span>' : ''}</td>
+      <td class="m">${p.m}</td><td class="r">${zahlKurz(p.a.inh)} ${esc(peText(p.a.pe))}</td><td class="r">${esc(inhaltText(p.a, p.m))}</td></tr>`).join('')}</tbody></table>`;
+  let html = `
+    <div class="d-kopf"><div><div class="d-titel">Weihnachtsbestellung Fisch</div><div>${esc(f.vollname)}</div></div><div>Stand: ${heuteDe()}</div></div>
+    <div class="d-weg">${gs ? 'Per MDE gesendet am ' + esc(gs.datum) : 'Abgabe per MDE bis ' + esc(f.fristText)} · Mengen in Gebinden</div>`;
+  for (const t of f.tage) {
+    const liste = pos.filter(p => p.tag === t && p.a.mde !== false);
+    if (liste.length) html += `<h3 class="d-tag">${esc(f.info.liefertage[t])}</h3>` + tabelle(liste, false);
+  }
+  const anders = pos.filter(p => p.a.mde === false);
+  if (anders.length) html += `<h3 class="d-tag">Nicht auf dem roten Blatt</h3>` + tabelle(anders, true);
+  return html + `<div class="d-fuss">${pos.length} Positionen · erstellt mit der App „Bestellungen“</div>`;
+}
+
 /* Kontakt */
 function kontaktZeile(x) {
   const loeschen = x.eigen !== undefined
@@ -1194,20 +1719,32 @@ function kontaktZeile(x) {
   }
 }
 function kontaktHtml(f) {
-  const k = kopfDaten(f);
+  const k = kopfDaten(f), privat = stammFirma(f).kontakt || [];
   const eigene = (S.kontaktExtra[f.id] || []).map((x, i) => Object.assign({}, x, { eigen: i }));
-  return `
+  const info = f.saison && f.info ? `
     <section class="karte">
-      <h3>${esc(f.vollname)}</h3>
-      ${f.kontakt.map(kontaktZeile).join('')}
+      <h3>Weihnachts-Vorbestellung 2026</h3>
+      <div class="karte-inhalt saison-info">
+        <p>📟 <b>Abgabe:</b> ${esc(f.info.abgabe)}</p>
+        <p>📞 ${esc(f.info.aenderungen)}</p>
+        <p>🧾 ${esc(f.info.uebersicht)}</p>
+        <p><b>Liefertage</b><br>${f.tage.map(t => esc(f.info.liefertage[t])).join('<br>')}</p>
+        ${f.info.hinweise.map(h => `<p class="leise">ℹ ${esc(h)}</p>`).join('')}
+      </div>
+    </section>` : '';
+  return `${info}
+    <section class="karte">
+      <h3>${f.saison ? 'Ansprechpartner Rasting' : esc(f.vollname)}</h3>
+      ${f.kontakt.map(kontaktZeile).join('')}${privat.map(kontaktZeile).join('')}
+      ${f.saison && !privat.length ? `<div class="karte-inhalt leise klein">Die Ansprechpartner kommen mit dem Abgleich (stammdaten.json im privaten Repo).</div>` : ''}
     </section>
-    <section class="karte">
+    ${f.saison && !k.kundennr ? '' : `<section class="karte">
       <h3>Unsere Kundennummer</h3>
       <div class="kz"><div class="kz-link"><span class="kz-icon">🧾</span>
         <span class="kz-text"><span class="kundennr">${esc(k.kundennr || '–')}</span><span class="kz-label">${k.kundennr
           ? esc(k.name) + (k.abteilung ? ' · ' + esc(k.abteilung) : '') : 'kommt mit dem Abgleich (☁️ auf der Startseite)'}</span></span>
         ${k.kundennr ? `<button class="kz-aktion" data-akt="kopieren" data-wert="${esc(k.kundennr)}">Kopieren</button>` : ''}</div></div>
-    </section>
+    </section>`}
     ${eigene.length ? `<section class="karte"><h3>Eigene Einträge</h3>${eigene.map(kontaktZeile).join('')}</section>` : ''}
     <section class="karte klapp ${UI.neuOffen ? 'offen' : ''}" data-merk="neuOffen">
       <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Kontakt hinzufügen<span class="sub">z. B. Außendienst, Ansprechpartner, Notiz</span></span></button>
@@ -1224,6 +1761,7 @@ function kontaktHtml(f) {
 
 /* ---------- 6. Drucken / E-Mail / Teilen / Abschließen ---------- */
 function druckHtml(f) {
+  if (f.saison) return druckSaisonHtml(f);
   const k = kopfDaten(f), pos = positionen(f), hatP = hatPreise(f);
   const zeile = (l, w) => w ? `<tr><td>${l}</td><td>${esc(w).replace(/\n/g, '<br>')}</td></tr>` : '';
   const kontakt = t => (f.kontakt.find(x => x.typ === t) || {}).wert || '';
@@ -1364,6 +1902,11 @@ function hilfeHtml() {
       3. Hier auf der Startseite ☁️ antippen, Schlüssel einfügen, „Verbinden“.<br>
       4. Auf dem iPad dasselbe eintragen – fertig, beide Geräte haben denselben Stand.</p>
       <p>Der Abgleich läuft danach von selbst: beim Öffnen der App und kurz nach jeder Änderung. Bei gleichzeitigen Änderungen gewinnt die neuere.</p></details>
+    <details><summary>🐟 Rasting – Weihnachtsbestellung</summary>
+      <p>Bei Rasting trägst du je Liefertag die Anzahl <b>Gebinde</b> ein – genau die Zahl, die aufs rote Sendeblatt bzw. ins MDE kommt. Unter jedem Zähler steht, was das in kg (bzw. Stück/Packungen) bedeutet, z. B. 3 Gebinde Lachsfilet Trim D = 15 kg.</p>
+      <p>Der <b>Bestellzettel</b> sortiert alles nach Liefertagen, oben läuft der Countdown bis zur Abgabe (Fr 04.12., 12 Uhr). Nach dem Eintippen ins MDE: <b>📟 Per MDE gesendet</b>.</p>
+      <p>Änderst du danach Mengen, zeigt die App die Differenz: 🔴 = nachbestellen, 🟠 = weniger als gesendet – mit Anruf-Knopf zu den Ansprechpartnern. Nach dem Telefonat <b>Änderungen telefonisch durchgegeben</b> antippen, dann steht es mit Gesprächspartner im Verlauf.</p>
+      <p><b>Eigene Artikel</b> (z. B. Karpfen über den Bestpreis) legst du unter Produkte ganz unten an.</p></details>
     <details><summary>🔄 Neue Version</summary>
       <p>Liegt auf GitHub eine neuere Version der App, erscheint oben der Hinweis „Version … ist da“. Einfach <b>Jetzt laden</b> antippen – deine Daten bleiben erhalten. Geprüft wird beim Öffnen der App und alle 10 Minuten; im ℹ-Fenster steht, ob deine Version aktuell ist.</p></details>
     <details><summary>Wo sind meine Daten?</summary>
@@ -1422,7 +1965,7 @@ document.addEventListener('click', e => {
     }
     case 'bearbeiten': UI.bearbeiten = !UI.bearbeiten; neuZeichnen(); break;
     case 'katAn': case 'katAus':
-      f.artikel.filter(a => a.k === el.dataset.kat).forEach(a => setSichtbar(f, a.nr, akt === 'katAn'));
+      alleArtikel(f).filter(a => a.k === el.dataset.kat).forEach(a => setSichtbar(f, a.nr, akt === 'katAn'));
       renderListe();
       break;
     case 'klapp': {
@@ -1467,6 +2010,29 @@ document.addEventListener('click', e => {
     case 'kontaktLoeschen': {
       const liste = S.kontaktExtra[f.id] || [], i = Number(el.dataset.i);
       if (liste[i] && confirm(`„${liste[i].label}“ löschen?`)) { liste.splice(i, 1); speichern(); neuZeichnen(); }
+      break;
+    }
+    case 'mdeGesendet': mdeGesendet(f); break;
+    case 'aenderungDurch': zeigeOverlay(aenderungHtml(f)); break;
+    case 'aenderungOk': aenderungOk(f); break;
+    case 'gesendetZurueck':
+      if (confirm('„Per MDE gesendet“ zurücknehmen?\n\nDie gemerkten Mengen werden vergessen, die eingetragenen Mengen bleiben.')) {
+        delete S.gesendet[f.id]; speichern(); neuZeichnen();
+      }
+      break;
+    case 'eigenNeu': zeigeOverlay(eigenHtml(f, null)); break;
+    case 'eigenBearb': zeigeOverlay(eigenHtml(f, el.dataset.id)); break;
+    case 'eigenSpeichern': eigenSpeichern(f, el.dataset.id); break;
+    case 'eigenLoeschen': eigenLoeschen(f, el.dataset.id); break;
+    case 'eigenVorschlag': {
+      const v = (f.vorschlaege || []).find(x => x.nr === el.dataset.nr);
+      if (!v) break;
+      const e = { id: 'e' + Date.now().toString(36), n: v.n, nr: v.nr, inh: 1, pe: 'kg', gruppe: 'F', mde: false };
+      (S.eigene[f.id] ||= []).push(e);
+      S.offen[f.id + '|Eigene Artikel'] = true;
+      speichern(); neuZeichnen();
+      zeigeOverlay(eigenHtml(f, e.id));
+      toast('Angelegt – bitte Inhalt je Gebinde prüfen');
       break;
     }
     case 'abgleich': zeigeOverlay(syncHtml()); break;
