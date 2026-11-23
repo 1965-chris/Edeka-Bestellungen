@@ -65,6 +65,7 @@ main{max-width:760px;margin:0 auto}
   border-radius:12px;border:1px solid var(--linie);background:var(--karte);font-weight:600;
   text-decoration:none;padding:10px 14px}
 a.knopf{color:var(--text)}
+a.link{display:inline-block;text-decoration:none}
 .knopf.haupt{background:var(--akzent);border-color:var(--akzent);color:#fff}
 .knopf.ok{background:var(--ok);border-color:var(--ok);color:#fff}
 .knopf.aktiv{background:var(--akzent);border-color:var(--akzent);color:#fff}
@@ -231,6 +232,48 @@ details.hist[open] summary::before{transform:rotate(90deg)}
 .haken input{width:22px;height:22px}
 .saison-info p{margin:0 0 8px;font-size:14.5px}
 
+/* ---------- Rasting: Kundenbestellungen ---------- */
+.tag-kd{font-size:12px;color:var(--leise);font-weight:600}
+.tag-kd.fehlt{color:var(--rot);font-weight:700}
+.kd-zeile{font-size:13.5px;margin-top:4px;line-height:1.45}
+.kd-zeile.fehlt{color:var(--rot);font-weight:600}
+.kd-zeile.ok{color:var(--ok)}
+.nw{white-space:nowrap}
+.kd-knopf{border:0;border-radius:999px;background:var(--rot);color:#fff;font-weight:700;padding:4px 10px;font-size:13px;margin-left:2px;white-space:nowrap}
+.pos.kd-fehlt{box-shadow:inset 4px 0 0 var(--rot)}
+.kd-karte{border-left:5px solid var(--ok)}
+.kd-karte.fehlt{border-left-color:var(--rot)}
+.kd-status{margin:4px 0 8px;font-size:15px}
+.bd-tag{font-weight:700;font-size:12.5px;color:var(--leise);text-transform:uppercase;letter-spacing:.03em;margin:12px 0 2px}
+.bd-tag:first-child{margin-top:0}
+.bd-zeile{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--linie);font-size:14.5px}
+.bd-zeile small{display:block;color:var(--leise);font-size:12.5px;font-weight:400}
+.bd-r{text-align:right;white-space:nowrap}
+.bd-zeile.fehlt .bd-r small{color:var(--rot);font-weight:700}
+.kunde{display:flex;align-items:flex-start;gap:12px;padding:11px 10px 11px 14px;border-top:1px solid var(--linie)}
+.kunde:first-child{border-top:0}
+.kunde .art-text{flex:1;min-width:0}
+.kunde.abgeholt .a-name,.kunde.abgeholt .info{opacity:.55}
+.k-haken{position:relative;flex:none;width:36px;height:36px;margin-top:1px}
+.k-haken input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.k-haken span{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:2px solid #c5c9d0;color:transparent;font-weight:800;font-size:19px}
+.k-haken input:checked + span{background:var(--ok);border-color:var(--ok);color:#fff}
+.ok-label{font-size:12.5px;color:var(--ok);font-weight:700;margin-top:2px}
+.kf-kopf{display:flex;justify-content:space-between;align-items:center;margin:14px 14px 0;font-size:17px}
+.kf-zeile{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;border-top:1px solid var(--linie)}
+.kf-zeile.hat{background:rgba(43,138,62,.08)}
+.kf-zeile .art-text{flex:1;min-width:0}
+.kf-pos{flex:none;width:28px;height:28px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:13.5px;font-weight:700;color:var(--leise)}
+.kf-zeile.hat .kf-pos{background:var(--ok);color:#fff}
+.kf-menge{display:flex;align-items:center;flex:none;border:1px solid var(--linie);border-radius:11px;overflow:hidden;background:var(--karte)}
+.kf-menge input{width:62px;height:42px;border:0;text-align:center;font-size:17px;font-weight:700;background:transparent;padding:0;color:var(--text)}
+.kf-einheit{min-width:44px;height:42px;border:0;border-left:1px solid var(--linie);background:var(--bg);font-weight:700;font-size:15px;color:var(--text);padding:0 6px}
+.kf-einheit.fest{display:grid;place-items:center;font-weight:600;color:var(--leise)}
+.kf-suche{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--linie);background:var(--bg);padding:9px 11px;font-size:16px;color:var(--text)}
+.kf-treffer{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--linie);background:none;padding:11px 2px;font-size:15px;color:var(--text)}
+.kf-treffer:first-child{margin-top:6px}
+.kf-treffer.schon{color:var(--leise)}
+
 /* ---------- Kontakt ---------- */
 .kz{display:flex;align-items:center;border-top:1px solid var(--linie)}
 .kz:first-of-type{border-top:0}
@@ -320,8 +363,16 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 const VERSIONEN = [
+  { v: '1.6', datum: '23.11.2026', neu: [
+    'Rasting: neuer Reiter „Kunden“ – Wunschzettel erfassen wie auf Papier: die 10 vorgedruckten Artikel plus weitere aus dem ganzen Ordersatz, mit Abholtag, Uhrzeit und Frischfisch-Liefertag',
+    'Die App zählt alle Kundenmengen je Artikel und Liefertag zusammen und schlägt die Gebinde vor – einzeln oder „Alle Vorschläge übernehmen“',
+    'Bestellung zeigt je Artikel den Kundenbedarf und ob es reicht: 🔴 fehlt … bzw. ✓ … für die Theke',
+    'Abholliste nach Tagen mit Haken „abgeholt“',
+    'Kundenbestellungen gleichen sich zwischen iPhone und iPad ab (auch wenn auf beiden gleichzeitig erfasst wird); „Alle löschen“ für den Datenschutz nach der Saison',
+    'Reihenfolge der Salate wie auf dem roten Blatt (8240–8242), klarerer Hinweis bei 8316',
+  ]},
   { v: '1.5', datum: '21.11.2026', neu: [
     'Neue Kachel „Rasting Fisch“: Weihnachts-Vorbestellung 2026 mit allen 148 Artikeln des roten Ordersatzes',
     'Mengen in Gebinden je Liefertag (18., 19., 21., 22., 23.12.) – daneben steht die Menge in kg bzw. Stück/Packungen',
@@ -532,7 +583,7 @@ const RASTING_LISTE = {
     ['Stremellachs natur 13-15 Stk.',                     '1824', 1.2, 'kg', T_RAEUCHER],
     ['Black Tiger Gambas ohne Kopf 13/15, geschält',      '8114', 0.8, 'kg', T_FRISCH],
     ['ASC Garnelensalat Portwein 1kg',                    '8210', 1,   'kg', T_SALAT],
-    ['ASC Louisiana Flusskrebs- & Garnelencocktail 1kg',  '8316', 1,   'kg', T_SALAT, 'steht auch unter Salate'],
+    ['ASC Louisiana Flusskrebs- & Garnelencocktail 1kg',  '8316', 1,   'kg', T_SALAT, 'steht auf dem roten Blatt auch auf der Salate-Seite (letzte Zeile) – in der App nur hier'],
   ],
   'Fischfilets': [
     ['MSC Seelachsfilet 150g+ 5kg',                       '1272', 5,   'kg', T_FRISCH],
@@ -666,9 +717,9 @@ const RASTING_LISTE = {
     ['MSC Shrimpscocktail „Miami“',                       '8235', 1,   'kg', T_SALAT],
     ['MSC Heringshappen nach Matjesart in Senfsauce',     '8237', 1,   'kg', T_SALAT],
     ['MSC Schwedenhappen in Kräuterdressing',             '8238', 1,   'kg', T_SALAT],
-    ['MSC Matjessahnetopf mit Apfel',                     '8242', 1,   'kg', T_SALAT],
     ['MSC Dillhappen',                                    '8240', 1,   'kg', T_SALAT],
     ['Meeresfrüchte Cocktail Marseille',                  '8241', 1,   'kg', T_SALAT],
+    ['MSC Matjessahnetopf mit Apfel',                     '8242', 1,   'kg', T_SALAT],
     ['MSC Heringsfilet in Sahnesauce',                    '8244', 2,   'kg', T_SALAT],
     ['MSC roter Heringssalat 1kg',                        '8251', 1,   'kg', T_SALAT],
     ['MSC Friesische Dillhappen (Hering)',                '8248', 1,   'kg', T_SALAT],
@@ -778,6 +829,21 @@ const FIRMEN = [
       S: { name: 'Salate / Antipasti – Mo 21.12.', tage: T_SALAT },
       M: { name: 'Sauermarinaden – Fr 18.12.', tage: T_MARINADE },
     },
+    kundenFrist: '2026-12-03T23:59:00+01:00', kundenFristText: 'Do 03.12.2026',
+    abholTage: ['2026-12-21', '2026-12-22', '2026-12-23', '2026-12-24'],
+    /* Kunden-Wunschzettel „Ihre Wünsche“ (Seite 2) – Positionsnummer wie auf dem Zettel (die 9 fehlt dort) */
+    wunschzettel: [
+      { pos: 1, text: 'Victoriaseebarschfilet', nr: '1311' },
+      { pos: 2, text: 'Lachsfilet mit Haut', nr: '1290' },
+      { pos: 3, text: 'MSC Rotbarschfilet', nr: '1425' },
+      { pos: 4, text: 'Zander Filet mit Haut vom Kaiserzander', nr: '1422' },
+      { pos: 5, text: 'Thunfischfilet', nr: '1315' },
+      { pos: 6, text: 'Black Tiger Garnelen geschält/getaut', nr: '8114' },
+      { pos: 7, text: 'Stremellachs natur', nr: '1824' },
+      { pos: 8, text: 'Stremellachs Pfeffer', nr: '1833' },
+      { pos: 10, text: 'ASC Garnelen in Portwein Dressing', nr: '8210' },
+      { pos: 11, text: 'Louisiana Flusskrebs & Garnelencocktail mit Marc de Champagne', nr: '8316' },
+    ],
     vorschlaege: [
       { n: 'Karpfen ausgenommen', nr: '1245' },
       { n: 'Karpfenfilet ohne Haut', nr: '1227' },
@@ -792,7 +858,7 @@ const FIRMEN = [
 const SPEICHER_KEY = 'bestellungen.daten.v1';
 function leererZustand() {
   return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
-           geloescht: [], zeit: {}, eigene: {}, gesendet: {} };
+           geloescht: [], zeit: {}, eigene: {}, gesendet: {}, kunden: {} };
 }
 function laden() {
   try {
@@ -812,7 +878,7 @@ const SYNC_KEY = 'bestellungen.sync';
 let SY = {};
 try { SY = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { SY = {}; }
 let SNAP = null, syTimer = null, syLaeuft = false, syNochmal = false;
-const UI = { firma: null, reiter: 'produkte', bearbeiten: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false, neueVersion: '' };
+const UI = { firma: null, reiter: 'produkte', bearbeiten: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false, neueVersion: '', kDraft: null, kSuche: '' };
 
 /* ---------- 4. Hilfsfunktionen ---------- */
 const $  = (s, r = document) => r.querySelector(s);
@@ -850,12 +916,54 @@ const hatMenge = (f, a) => f.saison ? a.tage.some(t => menge(f, a.nr + '@' + t) 
 const zahlKurz = n => Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 });
 const peText = pe => pe === 'St' ? 'St.' : pe;
 const inhaltText = (a, m) => zahlKurz(a.inh * m) + ' ' + peText(a.pe);   /* m Gebinde → Menge, z. B. „15 kg“ */
-function fristRest(f) {
-  const ms = new Date(f.frist).getTime() - Date.now();
+function fristRest(f) { return restText(f.frist); }
+function restText(iso) {
+  const ms = new Date(iso).getTime() - Date.now();
   if (ms <= 0) return 'Frist vorbei';
   const t = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5);
   return t >= 1 ? `noch ${t} Tag${t > 1 ? 'e' : ''}${t < 3 ? ' ' + h + ' Std.' : ''}` : `noch ${h} Std.`;
 }
+/* Kundenbestellungen (Rasting-Wunschzettel): je Eintrag { id, t, name, nr, abhol, uhr, liefer, notiz, pos:[{nr,m,e}], abgeholt, erfasst } */
+const WOTAG = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const isoKurz = iso => iso ? WOTAG[new Date(iso + 'T12:00:00').getDay()] + ' ' + iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' : '';
+const tagIso = (f, t) => { const [d, m] = t.split('.'); return `${f.frist.slice(0, 4)}-${m}-${d}`; };
+const kundenListe = f => Object.values(S.kunden[f.id] || {}).sort((x, y) =>
+  (x.abhol || '9').localeCompare(y.abhol || '9') || (x.uhr || '99').localeCompare(y.uhr || '99') || String(x.name).localeCompare(String(y.name), 'de'));
+const einheitenVon = a => a.pe === 'kg' ? ['g', 'kg'] : [a.pe];
+const einheitKurz = e => e === 'St' ? 'St.' : e;
+const kMengeText = z => zahlKurz(z.m) + ' ' + einheitKurz(z.e);
+const mengeInPE = (a, z) => a.pe === 'kg' && z.e === 'g' ? z.m / 1000 : z.m;
+const runde3 = x => Math.round(x * 1000) / 1000;
+const peMenge = (a, x) => zahlKurz(runde3(x)) + ' ' + peText(a.pe);
+/* Frischfisch kommt Di 22.12. oder Mi 23.12.: möglichst frisch, aber spätestens am Abholtag (oder fest gewählt) */
+function lieferTagFuer(f, a, k) {
+  if (a.tage.length === 1) return a.tage[0];
+  if (k.liefer && a.tage.includes(k.liefer)) return k.liefer;
+  const vorher = a.tage.filter(t => !k.abhol || tagIso(f, t) <= k.abhol);
+  return vorher.length ? vorher[vorher.length - 1] : a.tage[0];
+}
+/* Kundenmengen je Artikel und Liefertag aufaddieren → Vorschlag in Gebinden */
+function bedarf(f) {
+  const out = {};
+  if (!f || !f.saison) return out;
+  for (const k of kundenListe(f)) for (const z of k.pos || []) {
+    const a = artikelNr(f, z.nr);
+    if (!a || !(z.m > 0)) continue;
+    const t = lieferTagFuer(f, a, k), key = a.nr + '@' + t;
+    const b = (out[key] ||= { a, tag: t, key, pe: 0, n: 0 });
+    b.pe += mengeInPE(a, z); b.n++;
+  }
+  for (const b of Object.values(out)) { b.pe = runde3(b.pe); b.vorschlag = Math.max(1, Math.ceil(b.pe / b.a.inh - 1e-9)); }
+  return out;
+}
+/* Reicht die bestellte Menge (m Gebinde) für die Kunden? */
+function deckung(b, m) {
+  const rest = runde3(m * b.a.inh - b.pe);
+  if (rest < 0) return { fehlt: true, text: '🔴 fehlt ' + peMenge(b.a, -rest) };
+  return { fehlt: false, text: rest ? '✓ ' + peMenge(b.a, rest) + ' für die Theke' : '✓ passt genau' };
+}
+const fehlende = (f, bd) => Object.values(bd).filter(b => deckung(b, menge(f, b.key)).fehlt);
+let AKT_BD = {};   /* Bedarf für die gerade gezeichnete Artikelliste */
 /* Stammdaten aus dem privaten Repo (Preise, Kundennummern, Kopfdaten) – auf dem Gerät zwischengespeichert */
 const STAMM_KEY = 'bestellungen.stamm';
 let STAMM = null;
@@ -981,7 +1089,7 @@ function track() {
   SNAP = neu;
 }
 function syncDaten() {
-  const d = { app: 'bestellungen', format: 1, zeit: S.zeit || {}, historie: S.historie || {}, geloescht: S.geloescht || [] };
+  const d = { app: 'bestellungen', format: 1, zeit: S.zeit || {}, historie: S.historie || {}, geloescht: S.geloescht || [], kunden: S.kunden || {} };
   for (const t of TEILE) d[t] = S[t] || {};
   for (const g of GLOBAL) d[g] = S[g];
   return d;
@@ -1005,7 +1113,7 @@ function mergeSync(L, R) {
   }
   for (const g of GLOBAL) { const v = waehle(g, L[g], R[g]); if (v !== undefined && v !== null) out[g] = v; }
   const weg = new Set([...(L.geloescht || []), ...(R.geloescht || [])].map(String));
-  out.geloescht = [...weg].slice(-500);
+  out.geloescht = [...weg].slice(-1000);
   out.historie = {};
   const lh = L.historie || {}, rh = R.historie || {};
   for (const id of new Set([...Object.keys(lh), ...Object.keys(rh)])) {
@@ -1014,13 +1122,25 @@ function mergeSync(L, R) {
     const liste = [...m.values()].sort(histSort).slice(0, 60);
     if (liste.length) out.historie[id] = liste;
   }
+  /* Kundenbestellungen: Vereinigung je Eintrag, der neuere Stand gewinnt, gelöschte bleiben gelöscht */
+  out.kunden = {};
+  const lk = L.kunden || {}, rk = R.kunden || {};
+  for (const fid of new Set([...Object.keys(lk), ...Object.keys(rk)])) {
+    const a = lk[fid] || {}, b = rk[fid] || {}, m = {};
+    for (const id of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (weg.has(String(id))) continue;
+      const x = a[id], y = b[id];
+      m[id] = !x ? y : !y ? x : ((y.t || 0) > (x.t || 0) ? y : x);
+    }
+    if (Object.keys(m).length) out.kunden[fid] = m;
+  }
   return out;
 }
-const inhalt = d => { const n = mergeSync(d, d); return canon([TEILE.map(t => n[t]), GLOBAL.map(g => n[g] ?? null), n.historie, n.geloescht, n.zeit]); };
+const inhalt = d => { const n = mergeSync(d, d); return canon([TEILE.map(t => n[t]), GLOBAL.map(g => n[g] ?? null), n.historie, n.geloescht, n.zeit, n.kunden]); };
 function applySync(m) {
   for (const t of TEILE) S[t] = m[t] || {};
   S.letzterWeg = m.letzterWeg || {}; S.letzterBesteller = m.letzterBesteller || '';
-  S.historie = m.historie || {}; S.geloescht = m.geloescht || []; S.zeit = m.zeit || {};
+  S.historie = m.historie || {}; S.geloescht = m.geloescht || []; S.zeit = m.zeit || {}; S.kunden = m.kunden || {};
   try { localStorage.setItem(SPEICHER_KEY, JSON.stringify(S)); } catch (e) { /* egal */ }
   SNAP = schnappschuss();
 }
@@ -1218,18 +1338,24 @@ function renderKopf() {
       <button class="rund" data-akt="hilfe" aria-label="Hilfe">ℹ</button>
     </div>
     ${f ? `<nav class="reiter">
-      ${[['produkte', 'Produkte'], ['bestellung', 'Bestellzettel'], ['kontakt', 'Kontakt']].map(([id, t]) =>
-        `<a href="#/${f.id}/${id}" class="${UI.reiter === id ? 'aktiv' : ''}" data-reiter="${id}">${t}${id === 'bestellung'
-          ? ` <span class="marke" data-reiterzahl ${n ? '' : 'hidden'}>${n}</span>` : ''}</a>`).join('')}
+      ${reiterVon(f).map(([id, t]) => {
+        const kz = id === 'kunden' ? kundenListe(f).length : 0;
+        return `<a href="#/${f.id}/${id}" class="${UI.reiter === id ? 'aktiv' : ''}" data-reiter="${id}">${t}${id === 'bestellung'
+          ? ` <span class="marke" data-reiterzahl ${n ? '' : 'hidden'}>${n}</span>` : ''}${id === 'kunden'
+          ? ` <span class="marke" data-kundenzahl ${kz ? '' : 'hidden'}>${kz}</span>` : ''}</a>`; }).join('')}
     </nav>` : ''}
     ${UI.neueVersion ? `<div class="update-leiste"><span>🔄 Version <b>${esc(UI.neueVersion)}</b> ist da.</span>
       <button class="update-knopf" data-akt="neuLaden">Jetzt laden</button></div>` : ''}`;
 }
 
+const reiterVon = f => f.saison
+  ? [['produkte', 'Artikel'], ['kunden', 'Kunden'], ['bestellung', 'Bestellung'], ['kontakt', 'Kontakt']]
+  : [['produkte', 'Produkte'], ['bestellung', 'Bestellzettel'], ['kontakt', 'Kontakt']];
 function render() {
   renderKopf();
   const f = UI.firma, app = $('#app');
   if (!f) app.innerHTML = startHtml();
+  else if (UI.reiter === 'kunden') app.innerHTML = kundenHtml(f);
   else if (UI.reiter === 'bestellung') app.innerHTML = bestellungHtml(f);
   else if (UI.reiter === 'kontakt') app.innerHTML = kontaktHtml(f);
   else { app.innerHTML = produkteHtml(f); renderListe(); }
@@ -1260,7 +1386,7 @@ function kachelHtml(f) {
           <span class="k-name">${esc(f.name)}</span>
           <span class="k-unter">${esc(f.untertitel)}</span>
           <span class="k-info">${f.saison
-            ? `${ges} Artikel<br>${gs ? `✓ per MDE gesendet ${esc(gs.datum)}` : `📟 Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}`
+            ? `${ges} Artikel${kundenListe(f).length ? ` · 👥 ${kundenListe(f).length} Kunden` : ''}<br>${gs ? `✓ per MDE gesendet ${esc(gs.datum)}` : `📟 Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}`
             : `${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}` : ''}`}</span>
         </span>
         ${p ? `<span class="k-marke" title="Positionen im Bestellzettel">${p}</span>` : ''}
@@ -1306,6 +1432,7 @@ function renderListe() {
   const f = UI.firma, el = $('#liste');
   if (!f || !el) return;
   const q = UI.suche.trim().toLowerCase(), aus = ausgeblendet(f), bearb = UI.bearbeiten;
+  AKT_BD = bedarf(f);
   let html = '', gezeigt = 0;
   for (const k of kategorien(f)) {
     const alleInKat = alleArtikel(f).filter(a => a.k === k);
@@ -1378,9 +1505,10 @@ function zeileSaisonHtml(f, a, aus, bearb) {
   const rechts = bearb ? `<div class="bearb-knoepfe">${a.eigen ? `<button class="mini" data-akt="eigenBearb" data-id="${esc(a.nr)}" aria-label="Bearbeiten">✏️</button>` : ''}
       <label class="schalter" aria-label="sichtbar"><input type="checkbox" data-sichtbar data-nr="${esc(a.nr)}" ${istAus ? '' : 'checked'}><span></span></label></div>` : '';
   const tage = bearb ? '' : `<div class="tage">${a.tage.map(t => {
-    const key = a.nr + '@' + t, m = menge(f, key);
+    const key = a.nr + '@' + t, m = menge(f, key), b = AKT_BD[key];
     return `<div class="tag ${m ? 'hat' : ''}"><div class="tag-kopf">${esc(f.tagKurz[t])}</div>${stepperHtml(key, m)}
-      <div class="tag-kg" data-kg="${esc(key)}">${m ? '= ' + esc(inhaltText(a, m)) : '&nbsp;'}</div></div>`; }).join('')}</div>`;
+      <div class="tag-kg" data-kg="${esc(key)}">${m ? '= ' + esc(inhaltText(a, m)) : '&nbsp;'}</div>${b
+      ? `<div class="tag-kd ${deckung(b, m).fehlt ? 'fehlt' : ''}" data-kd="${esc(key)}" title="Kundenbestellungen">👥 ${esc(peMenge(a, b.pe))}</div>` : ''}</div>`; }).join('')}</div>`;
   return `
     <div class="art saison ${hatMenge(f, a) ? 'hat-menge' : ''} ${istAus ? 'aus' : ''}" data-zeile="${esc(a.nr)}">
       <div class="art-text"><div class="a-name">${esc(a.n)}</div>${info}${hinweis}${istAus && !bearb ? '<div class="aus-label">ausgeblendet</div>' : ''}</div>
@@ -1410,6 +1538,7 @@ function nachMengenAenderung(f, nr) {
   $$('[data-menge]').forEach(i => { if (i.dataset.nr === nr && i !== document.activeElement) i.value = m || ''; });
   $$('[data-zeile]').forEach(z => { if (z.dataset.zeile === id) z.classList.toggle('hat-menge', art ? hatMenge(f, art) : m > 0); });
   $$('[data-kg]').forEach(k => { if (k.dataset.kg === nr && art) { k.innerHTML = m ? '= ' + esc(inhaltText(art, m)) : '&nbsp;'; k.parentElement.classList.toggle('hat', m > 0); } });
+  $$('[data-kd]').forEach(k => { const b = AKT_BD[nr]; if (k.dataset.kd === nr && b) k.classList.toggle('fehlt', deckung(b, m).fehlt); });
   $$('[data-katzahl]').forEach(b => {
     const n = alleArtikel(f).filter(a => a.k === b.dataset.katzahl && hatMenge(f, a)).length;
     b.textContent = n; b.hidden = !n;
@@ -1520,17 +1649,27 @@ function saisonDeltas(f) {
   }
   return out.sort((x, y) => f.tage.indexOf(x.tag) - f.tage.indexOf(y.tag) || alle.indexOf(x.a) - alle.indexOf(y.a));
 }
-function posSaisonHtml(f, p, gs, mitTag) {
-  const d = gs ? p.m - (gs.mengen[p.key] || 0) : 0;
+function posSaisonHtml(f, p, gs, mitTag, b) {
+  const d = gs ? p.m - (gs.mengen[p.key] || 0) : 0, dk = b ? deckung(b, p.m) : null;
   return `
-    <div class="pos">
+    <div class="pos ${dk && dk.fehlt ? 'kd-fehlt' : ''}">
       <div class="art-text">
         <div class="a-name">${p.a.artNr ? `<span class="artnr">${esc(p.a.artNr)}</span> ` : ''}${esc(p.a.n)}</div>
         <div class="info">${esc(gebindeText(f, p.a))}${mitTag ? ' · ' + esc(f.tagKurz[p.tag]) : ''}</div>
-        <div class="preis"><b>${p.m} Geb. = ${esc(inhaltText(p.a, p.m))}</b>${d ? ` <span class="delta ${d > 0 ? 'plus' : 'minus'}">${d > 0 ? '+' : ''}${d} seit dem Senden</span>` : ''}</div>
+        <div class="preis"><b>${p.m ? `${p.m} Geb. = ${esc(inhaltText(p.a, p.m))}` : 'noch nichts bestellt'}</b>${d ? ` <span class="delta ${d > 0 ? 'plus' : 'minus'}">${d > 0 ? '+' : ''}${d} seit dem Senden</span>` : ''}</div>
+        ${b ? `<div class="kd-zeile ${dk.fehlt ? 'fehlt' : 'ok'}">👥 Kunden ${esc(peMenge(p.a, b.pe))} <span class="leise">(${b.n})</span> · <span class="nw">${esc(dk.text)}</span>${dk.fehlt
+          ? ` <button class="kd-knopf" data-akt="vorschlag" data-key="${esc(p.key)}" data-m="${b.vorschlag}">auf ${b.vorschlag} Geb.</button>` : ''}</div>` : ''}
       </div>
       ${stepperHtml(p.key, p.m)}
     </div>`;
+}
+/* Zeilen eines Liefertags: alles mit Menge + alles, was Kunden bestellt haben */
+function saisonZeilen(f, pos, bd, filter) {
+  const map = new Map();
+  for (const p of pos) if (filter(p.a, p.tag)) map.set(p.key, p);
+  for (const b of Object.values(bd)) if (filter(b.a, b.tag) && !map.has(b.key)) map.set(b.key, { a: b.a, m: 0, key: b.key, tag: b.tag });
+  const alle = alleArtikel(f);
+  return [...map.values()].sort((x, y) => f.tage.indexOf(x.tag) - f.tage.indexOf(y.tag) || alle.indexOf(x.a) - alle.indexOf(y.a));
 }
 function ansprechpartnerHtml(f, kompakt) {
   const liste = (stammFirma(f).kontakt || []).filter(x => x.typ === 'tel' || x.typ === 'mobil');
@@ -1541,30 +1680,41 @@ function ansprechpartnerHtml(f, kompakt) {
 }
 function bestellungSaisonHtml(f) {
   const pos = positionen(f), gs = S.gesendet[f.id], deltas = saisonDeltas(f), hist = S.historie[f.id] || [];
+  const bd = bedarf(f), fehlt = fehlende(f, bd), nKunden = kundenListe(f).length;
   const vorbei = new Date(f.frist).getTime() <= Date.now();
   const status = gs
     ? `<div class="saison-status ok">✓ <b>Per MDE gesendet</b> am ${esc(gs.datum)}${gs.uhr ? ', ' + esc(gs.uhr) + ' Uhr' : ''}
         <span>${esc(f.info.aenderungen)}</span></div>`
     : `<div class="saison-status ${vorbei ? 'warn' : ''}">📟 Abgabe per MDE: <b>${esc(f.fristText)}</b>
         <span>${esc(fristRest(f))} · nur einmal senden, nur vom roten Sendeblatt</span></div>`;
+  const fehltText = liste => { const n = liste.filter(p => bd[p.key] && deckung(bd[p.key], p.m).fehlt).length; return n ? ` · 🔴 ${n} reich${n > 1 ? 'en' : 't'} nicht` : ''; };
   const tage = f.tage.map(t => {
-    const liste = pos.filter(p => p.tag === t && p.a.mde !== false);
+    const liste = saisonZeilen(f, pos, bd, (a, tag) => tag === t && a.mde !== false);
     if (!liste.length) return '';
-    const geb = liste.reduce((s, p) => s + p.m, 0);
+    const mit = liste.filter(p => p.m), geb = mit.reduce((s, p) => s + p.m, 0);
     return `
       <section class="karte klapp offen">
         <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
-          <span>${esc(f.info.liefertage[t])}<span class="sub">${liste.length} Pos. · ${geb} Gebinde</span></span></button>
-        <div class="klapp-inhalt ohne-rand">${liste.map(p => posSaisonHtml(f, p, gs, false)).join('')}</div>
+          <span>${esc(f.info.liefertage[t])}<span class="sub">${mit.length} Pos. · ${geb} Gebinde${fehltText(liste)}</span></span></button>
+        <div class="klapp-inhalt ohne-rand">${liste.map(p => posSaisonHtml(f, p, gs, false, bd[p.key])).join('')}</div>
       </section>`;
   }).join('');
-  const anders = pos.filter(p => p.a.mde === false);
+  const anders = saisonZeilen(f, pos, bd, a => a.mde === false);
   const andersHtml = anders.length ? `
     <section class="karte klapp offen">
       <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
-        <span>Nicht auf dem roten Blatt<span class="sub">${anders.length} Pos. · z. B. über den Bestpreis – getrennt bestellen</span></span></button>
-      <div class="klapp-inhalt ohne-rand">${anders.map(p => posSaisonHtml(f, p, gs, true)).join('')}</div>
+        <span>Nicht auf dem roten Blatt<span class="sub">${anders.filter(p => p.m).length} Pos. · z. B. über den Bestpreis – getrennt bestellen${fehltText(anders)}</span></span></button>
+      <div class="klapp-inhalt ohne-rand">${anders.map(p => posSaisonHtml(f, p, gs, true, bd[p.key])).join('')}</div>
     </section>` : '';
+  const kundenKarte = nKunden ? `
+    <section class="karte kd-karte ${fehlt.length ? 'fehlt' : 'ok'}"><div class="karte-inhalt">
+      <b>👥 ${nKunden} Kundenbestellung${nKunden > 1 ? 'en' : ''}</b> · ${Object.keys(bd).length} Artikel
+      ${fehlt.length ? `<div class="kd-status">🔴 ${fehlt.length} Artikel reich${fehlt.length > 1 ? 'en' : 't'} noch nicht für die Kunden</div>
+        <button class="knopf" data-akt="alleVorschlaege" style="margin-top:10px">Alle Vorschläge übernehmen (${fehlt.length})</button>
+        ${gs ? `<p class="leise klein">Übernommene Mengen erscheinen unter „Änderungen seit dem Senden“ – zum telefonischen Nachbestellen.</p>` : ''}`
+        : `<div class="kd-status">✓ Alle Kundenwünsche sind gedeckt – der Rest geht an die Theke.</div>`}
+      <a class="link" href="#/${f.id}/kunden">Kundenbestellungen ansehen ›</a>
+    </div></section>` : '';
   const aenderungen = gs && deltas.length ? `
     <section class="karte aenderungen">
       <h3>Änderungen seit dem Senden (${deltas.length})</h3>
@@ -1589,7 +1739,8 @@ function bestellungSaisonHtml(f) {
   return `
     ${status}
     ${aenderungen}
-    ${pos.length ? tage + andersHtml : `<p class="leer">Noch keine Mengen.<br>Unter <b>Produkte</b> trägst du je Liefertag die Anzahl <b>Gebinde</b> ein.</p>`}
+    ${kundenKarte}
+    ${pos.length || nKunden ? tage + andersHtml : `<p class="leer">Noch keine Mengen.<br>Unter <b>Artikel</b> trägst du je Liefertag die Anzahl <b>Gebinde</b> ein.</p>`}
     <div class="aktionen">
       ${!gs && pos.length ? `<button class="knopf ok" data-akt="mdeGesendet">📟 Per MDE gesendet ✓</button>` : ''}
       ${pos.length ? `<button class="knopf" data-akt="drucken">🖨 Liste je Liefertag drucken / PDF</button>` : ''}
@@ -1682,10 +1833,11 @@ function eigenLoeschen(f, id) {
   speichern(); schliesseOverlay(); neuZeichnen();
 }
 function druckSaisonHtml(f) {
-  const pos = positionen(f), gs = S.gesendet[f.id];
-  const tabelle = (liste, mitTag) => `<table class="d-pos"><thead><tr><th>Art.-Nr.</th><th>Bezeichnung</th><th class="r">Gebinde</th><th class="r">Inhalt/Geb.</th><th class="r">Menge</th></tr></thead>
+  const pos = positionen(f), gs = S.gesendet[f.id], bd = bedarf(f), mitK = Object.keys(bd).length > 0;
+  const tabelle = (liste, mitTag) => `<table class="d-pos"><thead><tr><th>Art.-Nr.</th><th>Bezeichnung</th><th class="r">Gebinde</th><th class="r">Inhalt/Geb.</th><th class="r">Menge</th>${mitK ? '<th class="r">davon Kunden</th>' : ''}</tr></thead>
     <tbody>${liste.map(p => `<tr><td>${esc(p.a.artNr || '')}</td><td>${esc(p.a.n)}${mitTag ? ' <span class="d-klein">(' + esc(f.tagKurz[p.tag]) + ')</span>' : ''}</td>
-      <td class="m">${p.m}</td><td class="r">${zahlKurz(p.a.inh)} ${esc(peText(p.a.pe))}</td><td class="r">${esc(inhaltText(p.a, p.m))}</td></tr>`).join('')}</tbody></table>`;
+      <td class="m">${p.m}</td><td class="r">${zahlKurz(p.a.inh)} ${esc(peText(p.a.pe))}</td><td class="r">${esc(inhaltText(p.a, p.m))}</td>${mitK
+      ? `<td class="r">${bd[p.key] ? esc(peMenge(p.a, bd[p.key].pe)) + (deckung(bd[p.key], p.m).fehlt ? ' ⚠' : '') : ''}</td>` : ''}</tr>`).join('')}</tbody></table>`;
   let html = `
     <div class="d-kopf"><div><div class="d-titel">Weihnachtsbestellung Fisch</div><div>${esc(f.vollname)}</div></div><div>Stand: ${heuteDe()}</div></div>
     <div class="d-weg">${gs ? 'Per MDE gesendet am ' + esc(gs.datum) : 'Abgabe per MDE bis ' + esc(f.fristText)} · Mengen in Gebinden</div>`;
@@ -1696,6 +1848,208 @@ function druckSaisonHtml(f) {
   const anders = pos.filter(p => p.a.mde === false);
   if (anders.length) html += `<h3 class="d-tag">Nicht auf dem roten Blatt</h3>` + tabelle(anders, true);
   return html + `<div class="d-fuss">${pos.length} Positionen · erstellt mit der App „Bestellungen“</div>`;
+}
+
+/* ---------- Kundenbestellungen (Rasting-Wunschzettel) ---------- */
+function kundenHtml(f) {
+  if (UI.kDraft) return kundeFormHtml(f);
+  const liste = kundenListe(f), bd = bedarf(f), fehlt = fehlende(f, bd), vorbei = new Date(f.kundenFrist).getTime() <= Date.now();
+  const abgeholt = liste.filter(k => k.abgeholt).length;
+  const bdTage = f.tage.map(t => {
+    const zeilen = Object.values(bd).filter(b => b.tag === t).sort((x, y) => alleArtikel(f).indexOf(x.a) - alleArtikel(f).indexOf(y.a));
+    if (!zeilen.length) return '';
+    return `<div class="bd-tag">${esc(f.tagKurz[t])}</div>${zeilen.map(b => {
+      const m = menge(f, b.key), dk = deckung(b, m);
+      return `<div class="bd-zeile ${dk.fehlt ? 'fehlt' : ''}"><span>${esc(b.a.n)}<small>${b.n} Kunde${b.n > 1 ? 'n' : ''} · mind. ${b.vorschlag} Geb.</small></span>
+        <span class="bd-r"><b>${esc(peMenge(b.a, b.pe))}</b><small>${m ? `bestellt ${m} Geb. ${dk.fehlt ? '🔴' : '✓'}` : '🔴 noch nicht bestellt'}</small></span></div>`; }).join('')}`;
+  }).join('');
+  return `
+    <div class="saison-status ${vorbei ? 'warn' : ''}">🎄 Kunden-Vorbestellung bis <b>${esc(f.kundenFristText)}</b>
+      <span>${vorbei ? 'Frist vorbei – spätere Wünsche trotzdem erfassen, sie zählen mit' : esc(restText(f.kundenFrist))} · Abholung ${esc(isoKurz(f.abholTage[0]))} bis ${esc(isoKurz(f.abholTage[f.abholTage.length - 1]))}</span></div>
+    <div class="aktionen"><button class="knopf haupt" data-akt="kNeu">＋ Wunschzettel erfassen</button></div>
+    ${liste.length ? `
+    <section class="karte kd-karte ${fehlt.length ? 'fehlt' : 'ok'}"><div class="karte-inhalt">
+      <b>${liste.length} Wunschzettel</b> · ${abgeholt} abgeholt
+      <div class="kd-status">${fehlt.length ? `🔴 ${fehlt.length} Artikel reich${fehlt.length > 1 ? 'en' : 't'} noch nicht` : '✓ Die Bestellung deckt alle Kundenwünsche'}</div>
+      <a class="link" href="#/${f.id}/bestellung">${fehlt.length ? 'Zur Bestellung – Vorschläge übernehmen ›' : 'Zur Bestellung ›'}</a>
+    </div></section>
+    <section class="karte klapp ${UI.kBedarfOffen ? 'offen' : ''}" data-merk="kBedarfOffen">
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
+        <span>Zusammengezählt je Artikel<span class="sub">${Object.keys(bd).length} Artikel – nach Liefertag</span></span></button>
+      <div class="klapp-inhalt">${bdTage}</div>
+    </section>
+    <div class="werkzeug"><input id="kFilter" type="search" placeholder="Kunde suchen: Name oder Nr." value="${esc(UI.kFilter || '')}" autocomplete="off"></div>
+    <div id="kListe">${kListeHtml(f)}</div>
+    <div class="aktionen">
+      <button class="knopf" data-akt="abholDruck">🖨 Abholliste drucken / PDF</button>
+      <div class="klein-aktionen"><button class="link rot" data-akt="kAlleLoeschen">Alle Kundenbestellungen löschen</button></div>
+    </div>` : `<p class="leer">Noch keine Kundenbestellungen.<br>Tippe auf <b>＋ Wunschzettel erfassen</b> und übertrage den Zettel – die App zählt alles zusammen und schlägt die Gebinde für die Rasting-Bestellung vor.</p>`}`;
+}
+function kListeHtml(f) {
+  const q = (UI.kFilter || '').trim().toLowerCase();
+  const liste = kundenListe(f).filter(k => !q || (k.name + ' ' + (k.nr || '')).toLowerCase().includes(q));
+  if (!liste.length) return `<p class="leer klein">Niemand gefunden für „${esc(UI.kFilter)}“.</p>`;
+  const tage = [...new Set(liste.map(k => k.abhol || ''))];
+  return tage.map(iso => {
+    const gr = liste.filter(k => (k.abhol || '') === iso), ab = gr.filter(k => k.abgeholt).length, merk = 'kz_' + (iso || 'ohne');
+    return `
+      <section class="karte klapp ${UI[merk] === false && !q ? '' : 'offen'}" data-merk="${merk}">
+        <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
+          <span>${iso ? 'Abholung ' + esc(isoKurz(iso)) : 'Ohne Abholtag'}<span class="sub">${gr.length} Kunde${gr.length > 1 ? 'n' : ''}${ab ? ` · ${ab} abgeholt` : ''}</span></span></button>
+        <div class="klapp-inhalt ohne-rand">${gr.map(k => kundeZeileHtml(f, k)).join('')}</div>
+      </section>`;
+  }).join('');
+}
+function kundeZeileHtml(f, k) {
+  const pos = (k.pos || []).map(z => { const a = artikelNr(f, z.nr); return `${esc(a ? kurzName(f, a) : z.nr)} <b>${esc(kMengeText(z))}</b>`; }).join(' · ');
+  return `
+    <div class="kunde ${k.abgeholt ? 'abgeholt' : ''}">
+      <label class="k-haken" aria-label="abgeholt"><input type="checkbox" data-kabgeholt="${esc(k.id)}" ${k.abgeholt ? 'checked' : ''}><span>✓</span></label>
+      <div class="art-text">
+        <div class="a-name">${esc(k.name)}${k.nr ? ` <span class="artnr">Nr. ${esc(k.nr)}</span>` : ''}${k.uhr ? ` <span class="leise">· ${esc(k.uhr)}${/^\d{1,2}([:.]\d{2})?$/.test(k.uhr) ? ' Uhr' : ''}</span>` : ''}</div>
+        <div class="info">${pos}</div>
+        ${k.notiz ? `<div class="notiz">📝 ${esc(k.notiz)}</div>` : ''}
+        ${k.abgeholt ? '<div class="ok-label">abgeholt</div>' : ''}
+      </div>
+      <button class="mini" data-akt="kBearb" data-id="${esc(k.id)}" aria-label="Bearbeiten">✏️</button>
+    </div>`;
+}
+/* Kurzname für Listen: Wunschzettel-Text, sonst Artikelname */
+const kurzName = (f, a) => ((f.wunschzettel || []).find(w => w.nr === a.nr) || {}).text || a.n;
+
+/* Wunschzettel-Formular – arbeitet auf einem Entwurf (UI.kDraft), gespeichert wird erst mit „Speichern“ */
+function kundeEntwurf(f, k) {
+  const ws = (f.wunschzettel || []).filter(w => artikelNr(f, w.nr));
+  const pos = ws.map(w => { const a = artikelNr(f, w.nr); return { nr: w.nr, ws: w.pos, m: 0, e: einheitenVon(a)[0] }; });
+  for (const z of (k && k.pos) || []) {
+    const vorh = pos.find(p => p.nr === z.nr && !p.m);
+    if (vorh) Object.assign(vorh, { m: z.m, e: z.e }); else pos.push({ nr: z.nr, ws: null, m: z.m, e: z.e });
+  }
+  return { id: k ? k.id : 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), neu: !k,
+           name: k ? k.name : '', nr: k ? k.nr || '' : '', abhol: k ? k.abhol || '' : '', uhr: k ? k.uhr || '' : '',
+           liefer: k ? k.liefer || '' : '', notiz: k ? k.notiz || '' : '', pos };
+}
+function kfWarnung(f, d, z) {
+  const a = artikelNr(f, z.nr);
+  if (!a) return '';
+  const w = [];
+  if (a.pe === 'kg' && z.e === 'g' && z.m > 0 && z.m < 20) w.push(`⚠ nur ${zahlKurz(z.m)} g – meintest du kg? Einheit antippen`);
+  if (a.pe === 'kg' && z.e === 'kg' && z.m >= 50) w.push(`⚠ ${zahlKurz(z.m)} kg – meintest du g? Einheit antippen`);
+  const t = lieferTagFuer(f, a, d);
+  if (d.abhol && tagIso(f, t) > d.abhol) w.push(`⚠ kommt erst ${f.tagKurz[t]} – Abholtag passt nicht`);
+  return w.join(' · ');
+}
+function kfZeileHtml(f, d, z, i) {
+  const a = artikelNr(f, z.nr);
+  if (!a) return '';
+  const text = z.ws ? kurzName(f, a) : a.n, eh = einheitenVon(a), w = kfWarnung(f, d, z);
+  return `
+    <div class="kf-zeile ${z.m > 0 ? 'hat' : ''}" data-kfz="${i}">
+      <span class="kf-pos">${z.ws || '＋'}</span>
+      <div class="art-text">
+        <div class="a-name">${esc(text)}</div>
+        <div class="info">${a.artNr ? 'Art. ' + esc(a.artNr) + ' · ' : ''}${esc(gebindeText(f, a))} · ${esc(f.tagKurz[lieferTagFuer(f, a, d)])}</div>
+        <div class="warn" data-kfw="${i}" ${w && z.m > 0 ? '' : 'hidden'}>${esc(w)}</div>
+      </div>
+      <div class="kf-menge">
+        <input data-kfm="${i}" type="text" inputmode="decimal" value="${z.m > 0 ? String(z.m).replace('.', ',') : ''}" placeholder="0" aria-label="Menge ${esc(text)}">
+        ${eh.length > 1 ? `<button class="kf-einheit" data-akt="kfEinheit" data-i="${i}" aria-label="Einheit wechseln">${esc(einheitKurz(z.e))}</button>`
+          : `<span class="kf-einheit fest">${esc(einheitKurz(z.e))}</span>`}
+      </div>
+      ${z.ws ? '' : `<button class="mini" data-akt="kfDel" data-i="${i}" aria-label="Zeile entfernen">✕</button>`}
+    </div>`;
+}
+function kundeFormHtml(f) {
+  const d = UI.kDraft, ws = d.pos.map((z, i) => [z, i]).filter(([z]) => z.ws), extra = d.pos.map((z, i) => [z, i]).filter(([z]) => !z.ws);
+  const frisch = d.pos.some(z => { const a = artikelNr(f, z.nr); return a && a.tage.length > 1; });
+  return `
+    <div class="kf-kopf"><b>${d.neu ? 'Wunschzettel erfassen' : 'Wunschzettel ändern'}</b>
+      <button class="link" data-akt="kfAbbrechen">Abbrechen</button></div>
+    <section class="karte"><div class="karte-inhalt">
+      <div class="feld-reihe">
+        <label class="feld" style="flex:2"><span>Name / Kürzel</span><input data-kf="name" value="${esc(d.name)}" autocomplete="off" placeholder="z. B. Müller"></label>
+        <label class="feld"><span>Zettel-Nr.</span><input data-kf="nr" value="${esc(d.nr)}" inputmode="numeric" autocomplete="off"></label>
+      </div>
+      <div class="feld"><span>Abholtag</span>
+        <div class="wege">${f.abholTage.map(iso => `<label class="weg"><input type="radio" name="kAbhol" value="${iso}" ${d.abhol === iso ? 'checked' : ''}><span>${esc(isoKurz(iso)).replace(' ', '<br>')}</span></label>`).join('')}</div></div>
+      <label class="feld"><span>Uhrzeit (falls angegeben)</span><input data-kf="uhr" value="${esc(d.uhr)}" autocomplete="off" placeholder="z. B. 10:30 oder vormittags"></label>
+      <p class="leise klein" style="margin:8px 0 0">Telefon und Adresse bleiben auf dem Papier – hier nur Name und Nummer.</p>
+    </div></section>
+    <section class="karte"><h3>Ihre Wünsche</h3>
+      <div class="kf-liste">${ws.map(([z, i]) => kfZeileHtml(f, d, z, i)).join('')}</div>
+    </section>
+    <section class="karte"><h3>Weitere Produkte</h3>
+      <div class="kf-liste">${extra.map(([z, i]) => kfZeileHtml(f, d, z, i)).join('')}</div>
+      <div class="karte-inhalt">
+        <input id="kfSuche" class="kf-suche" type="search" placeholder="Artikel suchen: Name oder Art.-Nr." value="${esc(UI.kSuche)}" autocomplete="off">
+        <div id="kfTreffer">${kfTrefferHtml(f)}</div>
+      </div>
+    </section>
+    <section class="karte"><div class="karte-inhalt">
+      ${frisch ? `<label class="feld" style="margin-top:0"><span>Frischfisch aus der Lieferung</span>
+        <select data-kfsel="liefer"><option value="">automatisch nach Abholtag</option>${T_FRISCH.map(t => `<option value="${t}" ${d.liefer === t ? 'selected' : ''}>${esc(f.tagKurz[t])}</option>`).join('')}</select></label>` : ''}
+      <label class="feld"><span>Notiz</span><textarea data-kf="notiz" rows="2" placeholder="z. B. in Scheiben, ohne Haut">${esc(d.notiz)}</textarea></label>
+    </div></section>
+    <div class="aktionen">
+      <button class="knopf ok" data-akt="kfSpeichern">✓ Speichern</button>
+      ${d.neu ? `<button class="knopf" data-akt="kfSpeichernNeu">✓ Speichern & nächster Zettel</button>` : ''}
+      <div class="klein-aktionen"><button class="link" data-akt="kfAbbrechen">Abbrechen</button>${d.neu ? '' : `<button class="link rot" data-akt="kfLoeschen">Löschen</button>`}</div>
+    </div>`;
+}
+function kfTrefferHtml(f) {
+  const q = UI.kSuche.trim().toLowerCase();
+  if (q.length < 2) return '';
+  const drin = new Set(UI.kDraft.pos.map(z => z.nr));
+  const tr = alleArtikel(f).filter(a => (a.n + ' ' + (a.artNr || '') + ' ' + a.k).toLowerCase().includes(q)).slice(0, 8);
+  if (!tr.length) return `<p class="leise klein">Nichts gefunden. Nicht im Ordersatz? Unter <b>Artikel</b> ganz unten „＋ Eigenen Artikel anlegen“.</p>`;
+  return tr.map(a => drin.has(a.nr)
+    ? `<div class="kf-treffer schon">${esc(a.n)} <span class="leise">· schon drin</span></div>`
+    : `<button class="kf-treffer" data-akt="kfAdd" data-nr="${esc(a.nr)}">＋ ${esc(a.n)} <span class="leise">· ${a.artNr ? esc(a.artNr) + ' · ' : ''}${esc(gebindeText(f, a))}</span></button>`).join('');
+}
+function kfWarnungenAktualisieren(f) {
+  const d = UI.kDraft;
+  d.pos.forEach((z, i) => {
+    const el = $(`[data-kfw="${i}"]`), w = kfWarnung(f, d, z);
+    if (el) { el.textContent = w; el.hidden = !(w && z.m > 0); }
+    const zl = $(`[data-kfz="${i}"]`); if (zl) zl.classList.toggle('hat', z.m > 0);
+  });
+}
+function kfSpeichern(f, weiter) {
+  const d = UI.kDraft;
+  if (!d) return;
+  const name = d.name.trim();
+  if (!name) { toast('Bitte Name oder Kürzel eintragen.'); const n = $('[data-kf="name"]'); if (n) n.focus(); return; }
+  const pos = d.pos.filter(z => z.m > 0).map(z => ({ nr: z.nr, m: z.m, e: z.e }));
+  if (!pos.length) { toast('Bitte mindestens eine Menge eintragen.'); return; }
+  if (!d.abhol && !confirm('Ohne Abholtag speichern?\n\nFrischfisch wird dann für die erste Lieferung (Di 22.12.) gezählt.')) return;
+  const alt = (S.kunden[f.id] || {})[d.id];
+  (S.kunden[f.id] ||= {})[d.id] = { id: d.id, t: Date.now(), name, nr: d.nr.trim(), abhol: d.abhol, uhr: d.uhr.trim(), liefer: d.liefer,
+    notiz: d.notiz.trim(), pos, abgeholt: alt ? !!alt.abgeholt : false, erfasst: alt ? alt.erfasst : heuteDe() };
+  UI.kDraft = weiter ? kundeEntwurf(f, null) : null; UI.kSuche = '';
+  speichern(); render(); window.scrollTo(0, 0);
+  toast(alt ? 'Geändert ✓' : weiter ? `„${name}“ gespeichert ✓ – nächster Zettel` : `„${name}“ gespeichert ✓`);
+}
+function kundeLoeschen(f, id) {
+  const k = (S.kunden[f.id] || {})[id];
+  if (!k || !confirm(`Wunschzettel von „${k.name}“ löschen?`)) return false;
+  delete S.kunden[f.id][id];
+  (S.geloescht ||= []).push(String(id));
+  speichern();
+  return true;
+}
+function druckAbholHtml(f) {
+  const liste = kundenListe(f), tage = [...new Set(liste.map(k => k.abhol || ''))];
+  let html = `<div class="d-kopf"><div><div class="d-titel">Abholliste Weihnachten</div><div>Fisch-Vorbestellungen (Rasting)</div></div><div>Stand: ${heuteDe()}</div></div>
+    <div class="d-weg">${liste.length} Wunschzettel</div>`;
+  for (const iso of tage) {
+    const gr = liste.filter(k => (k.abhol || '') === iso);
+    html += `<h3 class="d-tag">${iso ? 'Abholung ' + esc(isoKurz(iso)) : 'Ohne Abholtag'} · ${gr.length} Kunden</h3>
+      <table class="d-pos"><thead><tr><th>Name</th><th>Nr.</th><th>Uhrzeit</th><th>Wünsche</th><th>✓</th></tr></thead><tbody>${gr.map(k => `
+        <tr><td><b>${esc(k.name)}</b></td><td>${esc(k.nr || '')}</td><td>${esc(k.uhr || '')}</td>
+        <td>${(k.pos || []).map(z => { const a = artikelNr(f, z.nr); return `${esc(kMengeText(z))} ${esc(a ? kurzName(f, a) : z.nr)}`; }).join('<br>')}${k.notiz ? `<div class="d-klein">${esc(k.notiz)}</div>` : ''}</td>
+        <td class="m">${k.abgeholt ? '✓' : ''}</td></tr>`).join('')}</tbody></table>`;
+  }
+  return html + `<div class="d-fuss">erstellt mit der App „Bestellungen“ · nach der Saison bitte vernichten</div>`;
 }
 
 /* Kontakt */
@@ -1903,10 +2257,16 @@ function hilfeHtml() {
       4. Auf dem iPad dasselbe eintragen – fertig, beide Geräte haben denselben Stand.</p>
       <p>Der Abgleich läuft danach von selbst: beim Öffnen der App und kurz nach jeder Änderung. Bei gleichzeitigen Änderungen gewinnt die neuere.</p></details>
     <details><summary>🐟 Rasting – Weihnachtsbestellung</summary>
-      <p>Bei Rasting trägst du je Liefertag die Anzahl <b>Gebinde</b> ein – genau die Zahl, die aufs rote Sendeblatt bzw. ins MDE kommt. Unter jedem Zähler steht, was das in kg (bzw. Stück/Packungen) bedeutet, z. B. 3 Gebinde Lachsfilet Trim D = 15 kg.</p>
+      <p>Bei Rasting trägst du unter <b>Artikel</b> je Liefertag die Anzahl <b>Gebinde</b> ein – genau die Zahl, die aufs rote Sendeblatt bzw. ins MDE kommt. Unter jedem Zähler steht, was das in kg (bzw. Stück/Packungen) bedeutet, z. B. 3 Gebinde Lachsfilet Trim D = 15 kg.</p>
       <p>Der <b>Bestellzettel</b> sortiert alles nach Liefertagen, oben läuft der Countdown bis zur Abgabe (Fr 04.12., 12 Uhr). Nach dem Eintippen ins MDE: <b>📟 Per MDE gesendet</b>.</p>
       <p>Änderst du danach Mengen, zeigt die App die Differenz: 🔴 = nachbestellen, 🟠 = weniger als gesendet – mit Anruf-Knopf zu den Ansprechpartnern. Nach dem Telefonat <b>Änderungen telefonisch durchgegeben</b> antippen, dann steht es mit Gesprächspartner im Verlauf.</p>
-      <p><b>Eigene Artikel</b> (z. B. Karpfen über den Bestpreis) legst du unter Produkte ganz unten an.</p></details>
+      <p><b>Eigene Artikel</b> (z. B. Karpfen über den Bestpreis) legst du unter Artikel ganz unten an.</p></details>
+    <details><summary>👥 Rasting – Kundenbestellungen (Wunschzettel)</summary>
+      <p>Reiter <b>Kunden</b> › <b>＋ Wunschzettel erfassen</b>: Die App zeigt den Zettel „Ihre Wünsche“ mit denselben Nummern (1–11). Name oder Kürzel, Zettel-Nr. und Abholtag eintragen, dann die Mengen. <b>g/kg</b> antippen wechselt die Einheit. Was der Kunde auf der Rückseite zusätzlich notiert hat, suchst du unter <b>Weitere Produkte</b> aus dem ganzen Ordersatz.</p>
+      <p>Mit <b>Speichern & nächster Zettel</b> geht ein ganzer Stapel schnell. Telefon und Adresse bleiben auf dem Papier.</p>
+      <p>Frischfisch zählt die App automatisch zur passenden Lieferung: Abholung Di 22.12. → Lieferung Di 22.12., ab Mi 23.12. → Lieferung Mi 23.12. Bei Abholung Mo 21.12. warnt sie, weil Frischfisch erst Dienstag kommt.</p>
+      <p>Unter <b>Bestellung</b> steht je Artikel, was die Kunden wollen, und ob es reicht: <b>🔴 fehlt …</b> oder <b>✓ … für die Theke</b>. „auf X Geb.“ bzw. <b>Alle Vorschläge übernehmen</b> setzt die Mindestmenge in Gebinden. Kommen nach dem Senden noch Zettel dazu, erscheinen die zusätzlichen Gebinde als 🔴 Änderung zum telefonischen Nachbestellen.</p>
+      <p>Bei der Abholung den Haken ✓ setzen. Die <b>Abholliste</b> kannst du je Tag drucken. Nach der Saison: <b>Alle Kundenbestellungen löschen</b>.</p></details>
     <details><summary>🔄 Neue Version</summary>
       <p>Liegt auf GitHub eine neuere Version der App, erscheint oben der Hinweis „Version … ist da“. Einfach <b>Jetzt laden</b> antippen – deine Daten bleiben erhalten. Geprüft wird beim Öffnen der App und alle 10 Minuten; im ℹ-Fenster steht, ob deine Version aktuell ist.</p></details>
     <details><summary>Wo sind meine Daten?</summary>
@@ -2035,6 +2395,61 @@ document.addEventListener('click', e => {
       toast('Angelegt – bitte Inhalt je Gebinde prüfen');
       break;
     }
+    case 'vorschlag': setMenge(f, el.dataset.key, Number(el.dataset.m)); toast('Übernommen ✓'); break;
+    case 'alleVorschlaege': {
+      const liste = fehlende(f, bedarf(f));
+      if (!liste.length) break;
+      const mm = (S.mengen[f.id] ||= {});
+      liste.forEach(b => { mm[b.key] = Math.max(mm[b.key] || 0, b.vorschlag); });
+      speichern(); neuZeichnen();
+      toast(`${liste.length} Vorschl${liste.length > 1 ? 'äge' : 'ag'} übernommen ✓`);
+      break;
+    }
+    case 'kNeu': UI.kDraft = kundeEntwurf(f, null); UI.kSuche = ''; render(); window.scrollTo(0, 0); break;
+    case 'kBearb': {
+      const k = (S.kunden[f.id] || {})[el.dataset.id];
+      if (k) { UI.kDraft = kundeEntwurf(f, k); UI.kSuche = ''; render(); window.scrollTo(0, 0); }
+      break;
+    }
+    case 'kfAbbrechen': UI.kDraft = null; UI.kSuche = ''; render(); window.scrollTo(0, 0); break;
+    case 'kfSpeichern': kfSpeichern(f, false); break;
+    case 'kfSpeichernNeu': kfSpeichern(f, true); break;
+    case 'kfLoeschen':
+      if (UI.kDraft && kundeLoeschen(f, UI.kDraft.id)) { UI.kDraft = null; render(); window.scrollTo(0, 0); toast('Gelöscht'); }
+      break;
+    case 'kfEinheit': {
+      const z = UI.kDraft && UI.kDraft.pos[+el.dataset.i], a = z && artikelNr(f, z.nr);
+      if (!a) break;
+      const eh = einheitenVon(a);
+      z.e = eh[(eh.indexOf(z.e) + 1) % eh.length];
+      el.textContent = einheitKurz(z.e);
+      kfWarnungenAktualisieren(f);
+      break;
+    }
+    case 'kfAdd': {
+      const a = artikelNr(f, el.dataset.nr);
+      if (!a || !UI.kDraft) break;
+      UI.kDraft.pos.push({ nr: a.nr, ws: null, m: 0, e: einheitenVon(a)[0] });
+      UI.kSuche = ''; neuZeichnen();
+      const i = UI.kDraft.pos.length - 1, inp = $(`[data-kfm="${i}"]`);
+      if (inp) inp.focus();
+      break;
+    }
+    case 'kfDel': if (UI.kDraft) { UI.kDraft.pos.splice(+el.dataset.i, 1); neuZeichnen(); } break;
+    case 'kAlleLoeschen': {
+      const ids = Object.keys(S.kunden[f.id] || {});
+      if (!ids.length) break;
+      if (!confirm(`Alle ${ids.length} Kundenbestellungen löschen?\n\nZ. B. nach Weihnachten (Datenschutz). Sie verschwinden auch auf dem anderen Gerät. Die Rasting-Bestellung bleibt.`)) break;
+      S.kunden[f.id] = {};
+      (S.geloescht ||= []).push(...ids);
+      speichern(); neuZeichnen(); toast('Kundenbestellungen gelöscht');
+      break;
+    }
+    case 'abholDruck':
+      if (!kundenListe(f).length) break;
+      $('#druck').innerHTML = druckAbholHtml(f);
+      window.print();
+      break;
     case 'abgleich': zeigeOverlay(syncHtml()); break;
     case 'verbinden': verbinden(); break;
     case 'syncJetzt': syncJetzt(true); break;
@@ -2056,6 +2471,14 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target, f = UI.firma;
   if (t.id === 'suche') { UI.suche = t.value; renderListe(); return; }
+  if (t.id === 'kFilter') { UI.kFilter = t.value; const l = $('#kListe'); if (l && f) l.innerHTML = kListeHtml(f); return; }
+  if (t.id === 'kfSuche' && UI.kDraft) { UI.kSuche = t.value; const r = $('#kfTreffer'); if (r) r.innerHTML = kfTrefferHtml(f); return; }
+  if (t.matches('[data-kf]') && UI.kDraft) { UI.kDraft[t.dataset.kf] = t.value; return; }
+  if (t.matches('[data-kfm]') && UI.kDraft) {
+    const z = UI.kDraft.pos[+t.dataset.kfm];
+    if (z) { const v = parseZahl(t.value); z.m = v > 0 ? Math.round(v * 1000) / 1000 : 0; kfWarnungenAktualisieren(f); }
+    return;
+  }
   if (t.matches('[data-kopf]') && f) {
     (S.kopf[f.id] ||= {})[t.dataset.kopf] = t.value;
     if (t.dataset.kopf === 'besteller') S.letzterBesteller = t.value;
@@ -2079,19 +2502,26 @@ document.addEventListener('change', e => {
     return;
   }
   if (t.name === 'weg') { const pf = $('#partnerFeld'); if (pf) pf.hidden = t.value !== 'telefon'; return; }
+  if (t.name === 'kAbhol' && UI.kDraft) { UI.kDraft.abhol = t.value; neuZeichnen(); return; }
+  if (t.matches('[data-kfsel]') && UI.kDraft) { UI.kDraft[t.dataset.kfsel] = t.value; neuZeichnen(); return; }
+  if (t.matches('[data-kabgeholt]') && f) {
+    const k = (S.kunden[f.id] || {})[t.dataset.kabgeholt];
+    if (k) { k.abgeholt = t.checked; k.t = Date.now(); speichern(); neuZeichnen(); }
+    return;
+  }
   if (t.id === 'verSel') { const l = $('#verNeu'); if (l) l.innerHTML = neuerungenHtml(t.value); }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) schliesseOverlay(); });
 /* Zahlenfeld beim Antippen komplett markieren – so ersetzt die neue Zahl die alte */
-document.addEventListener('focusin', e => { if (e.target.matches('[data-menge]')) setTimeout(() => e.target.select(), 0); });
+document.addEventListener('focusin', e => { if (e.target.matches('[data-menge],[data-kfm]')) setTimeout(() => e.target.select(), 0); });
 
 function route() {
   const [id, reiter] = location.hash.replace(/^#\/?/, '').split('/');
   const f = firmaById(id);
   const neueSeite = f !== UI.firma || (reiter || 'produkte') !== UI.reiter;
-  if (f !== UI.firma) { UI.bearbeiten = false; UI.suche = ''; UI.kopfOffen = null; UI.histOffen = false; UI.neuOffen = false; }
+  if (f !== UI.firma) { UI.bearbeiten = false; UI.suche = ''; UI.kopfOffen = null; UI.histOffen = false; UI.neuOffen = false; UI.kDraft = null; UI.kSuche = ''; }
   UI.firma = f;
-  UI.reiter = ['produkte', 'bestellung', 'kontakt'].includes(reiter) ? reiter : 'produkte';
+  UI.reiter = f && reiterVon(f).some(([id]) => id === reiter) ? reiter : 'produkte';
   render();
   if (neueSeite) window.scrollTo(0, 0);
 }
