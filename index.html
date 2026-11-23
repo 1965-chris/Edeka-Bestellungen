@@ -153,6 +153,20 @@ details.hist.storniert summary > b{text-decoration:line-through;opacity:.7}
 .kunde.storniert .k-haken span{color:var(--rot);border-color:var(--rot)}
 .storno-feld{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:15px}
 .storno-feld input{width:22px;height:22px;flex:none}
+/* Mindestbestand */
+.bst-zeile{font-size:13.5px;margin-top:3px;line-height:1.45}
+.bst-zeile:empty{display:none}
+.ok-text{color:var(--ok)}
+.rot-text{color:var(--rot)}
+.art.unter-min{box-shadow:inset 4px 0 0 var(--rot)}
+.bst-felder{display:flex;gap:6px;flex:none}
+.bst-felder label{display:flex;flex-direction:column;align-items:center;font-size:11.5px;color:var(--leise);font-weight:600}
+.bst-felder input{width:58px;height:42px;border-radius:10px;border:1px solid var(--linie);background:var(--karte);text-align:center;font-size:17px;font-weight:700;color:var(--text);padding:0;margin-top:2px}
+.bst-felder label:last-child input{border-color:var(--link)}
+.bestand-box.unter{border-color:var(--rot);border-style:solid}
+.nur-min{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600}
+.nur-min input{width:20px;height:20px}
+.marke.rot{background:var(--rot);color:#fff}
 .pos{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 14px;border-top:1px solid var(--linie)}
 .pos:first-child{border-top:0}
 .summe{display:flex;justify-content:space-between;align-items:baseline;padding:13px 14px;border-top:2px solid var(--linie);font-weight:700;font-size:17px}
@@ -377,8 +391,15 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 const VERSIONEN = [
+  { v: '1.9', datum: '23.11.2026', neu: [
+    'Mindestbestand je Produkt (Remsgold, Weber und alle künftigen Lieferanten): Knopf „Bestand“ unter Produkte',
+    'Beim Durchgehen den aktuellen Bestand eintragen – liegt er unter dem Mindestbestand, wird das Produkt rot und die fehlende Menge als Bestellvorschlag angeboten',
+    '„Alle Vorschläge übernehmen“ setzt die Mengen in den Bestellzettel; „Nur Produkte mit Mindestbestand“ zum schnellen Zählen',
+    'Die Kachel zeigt, wie viele Produkte unter dem Mindestbestand sind; beim Ablegen der Bestellung wird die Zählung erledigt',
+    'Mindestbestand und Zählung gleichen sich zwischen iPhone und iPad ab',
+  ]},
   { v: '1.8', datum: '23.11.2026', neu: [
     'Frühere Bestellungen (Remsgold, Weber) lassen sich bearbeiten: Status „geliefert am …“ oder „storniert“, dazu Datum, Bestellweg, Gesprächspartner und Notiz',
     '„📦 Heute geliefert“ mit einem Tipp; offene Lieferungen sind mit ⏳ markiert – auch auf der Kachel',
@@ -883,7 +904,7 @@ const FIRMEN = [
 /* ---------- 3. Speicher ---------- */
 const SPEICHER_KEY = 'bestellungen.daten.v1';
 function leererZustand() {
-  return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, kontaktAend: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
+  return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, kontaktAend: {}, minbestand: {}, zaehlung: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
            geloescht: [], zeit: {}, eigene: {}, gesendet: {}, kunden: {} };
 }
 function laden() {
@@ -904,7 +925,7 @@ const SYNC_KEY = 'bestellungen.sync';
 let SY = {};
 try { SY = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { SY = {}; }
 let SNAP = null, syTimer = null, syLaeuft = false, syNochmal = false;
-const UI = { firma: null, reiter: 'produkte', bearbeiten: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false, neueVersion: '', kDraft: null, kSuche: '' };
+const UI = { firma: null, reiter: 'produkte', bearbeiten: false, zaehlen: false, nurMin: false, suche: '', kopfOffen: null, histOffen: false, neuOffen: false, neueVersion: '', kDraft: null, kSuche: '' };
 
 /* ---------- 4. Hilfsfunktionen ---------- */
 const $  = (s, r = document) => r.querySelector(s);
@@ -1058,6 +1079,66 @@ function setMenge(f, nr, m) {
   speichern();
   nachMengenAenderung(f, nr);
 }
+/* Mindestbestand (S.minbestand[firma][nr]) und Zählung (S.zaehlung[firma] = { datum, ist: {nr: Bestand} }) – in Bestelleinheiten */
+const minVon = (f, nr) => (S.minbestand[f.id] || {})[nr];
+const istVon = (f, nr) => ((S.zaehlung[f.id] || {}).ist || {})[nr];
+function bestandStatus(f, a) {
+  const min = minVon(f, a.nr), ist = istVon(f, a.nr);
+  if (min === undefined || ist === undefined) return null;
+  const fehlt = Math.round((min - ist) * 1000) / 1000;
+  return { min, ist, unter: fehlt > 0, vorschlag: fehlt > 0 ? Math.ceil(fehlt - 1e-9) : 0 };
+}
+const unterMin = f => f.saison ? [] : alleArtikel(f).map(a => ({ a, b: bestandStatus(f, a) })).filter(x => x.b && x.b.unter);
+const offeneVorschlaege = f => unterMin(f).filter(x => menge(f, x.a.nr) < x.b.vorschlag);
+function setBestand(f, art, nr, wert) {
+  const v = String(wert).trim() === '' ? null : parseZahl(wert);
+  const zahl = v === null || isNaN(v) || v < 0 ? null : Math.round(v * 1000) / 1000;
+  if (art === 'min') {
+    const m = (S.minbestand[f.id] ||= {});
+    if (zahl === null) delete m[nr]; else m[nr] = zahl;
+  } else {
+    const z = (S.zaehlung[f.id] ||= { datum: '', ist: {} });
+    z.ist ||= {};
+    if (zahl === null) delete z.ist[nr]; else { z.ist[nr] = zahl; z.datum = heuteIso(); }
+    if (!Object.keys(z.ist).length) delete S.zaehlung[f.id];
+  }
+  speichern();
+}
+function bestandZeileHtml(f, a) {
+  const min = minVon(f, a.nr), ist = istVon(f, a.nr), b = bestandStatus(f, a), m = menge(f, a.nr);
+  if (min === undefined && ist === undefined) return UI.zaehlen ? '<span class="leise">kein Mindestbestand</span>' : '';
+  const e = n => esc(einheit(f, a, n));
+  let t = min !== undefined ? `Min. ${zahlKurz(min)} ${e(min)}` : '';
+  if (ist !== undefined) t += `${t ? ' · ' : ''}Bestand ${zahlKurz(ist)}`;
+  if (!b) return `<span class="leise">${t}</span>`;
+  if (!b.unter) return `<span class="ok-text">✓ ${t}</span>`;
+  return `<span class="rot-text">🔴 ${t} → fehlt ${zahlKurz(b.vorschlag)} ${e(b.vorschlag)}</span>${m >= b.vorschlag
+    ? ' <span class="ok-text">✓ im Bestellzettel</span>'
+    : ` <button class="kd-knopf" data-akt="minVorschlag" data-nr="${esc(a.nr)}">${m ? 'auf ' : ''}${b.vorschlag} übernehmen</button>`}`;
+}
+function bestandKarteHtml(f) {
+  if (f.saison) return '';
+  const z = S.zaehlung[f.id], unter = unterMin(f), offen = offeneVorschlaege(f), nMin = Object.keys(S.minbestand[f.id] || {}).length;
+  if (!z && !UI.zaehlen) return '';
+  const gezaehlt = z ? Object.keys(z.ist || {}).length : 0;
+  return `<div class="info-box bestand-box ${unter.length ? 'unter' : ''}" id="bstKarte">
+    📋 ${z ? `Zählung vom <b>${esc(isoZuDe(z.datum).slice(0, 6))}</b> · ${gezaehlt} gezählt` : `${nMin} Produkt${nMin === 1 ? '' : 'e'} mit Mindestbestand · noch nichts gezählt`}
+    ${unter.length ? `<div class="rot-text" style="margin-top:4px"><b>${unter.length} unter Mindestbestand</b>${offen.length < unter.length ? ` · ${unter.length - offen.length} schon im Bestellzettel` : ''}</div>`
+      : z ? '<div class="ok-text" style="margin-top:4px">✓ nichts unter Mindestbestand</div>' : ''}
+    ${offen.length ? `<button class="knopf" style="margin-top:8px" data-akt="minAlle">Alle Vorschläge übernehmen (${offen.length})</button>` : ''}
+    ${z ? `<div style="margin-top:4px"><button class="link rot" data-akt="zaehlungLeeren">Zählung leeren</button></div>` : ''}
+  </div>`;
+}
+function bestandAktualisieren(f, nr) {
+  const a = artikelNr(f, nr);
+  $$('[data-bst]').forEach(el => { if (el.dataset.bst === nr && a) el.innerHTML = bestandZeileHtml(f, a); });
+  $$('[data-zeile]').forEach(z => { if (z.dataset.zeile === nr && a) { const b = bestandStatus(f, a); z.classList.toggle('unter-min', !!(b && b.unter)); } });
+  $$('[data-katunter]').forEach(m => {
+    const n = alleArtikel(f).filter(x => x.k === m.dataset.katunter && (bestandStatus(f, x) || {}).unter).length;
+    m.textContent = n; m.hidden = !n;
+  });
+  const k = $('#bstKarte'); if (k) k.outerHTML = bestandKarteHtml(f) || '<div id="bstKarte"></div>';
+}
 function setSichtbar(f, nr, sichtbar) {
   const s = ausgeblendet(f);
   if (sichtbar) s.delete(nr); else s.add(nr);
@@ -1081,7 +1162,7 @@ function toast(text) {
                                (schreibt die App selbst; die neuere Änderung gewinnt)
    Der Schlüssel bleibt nur auf diesem Gerät. Hochgeladen wird nur nach erfolgreichem Abruf. */
 const STAMM_DATEI = 'stammdaten.json', DATEN_DATEI = 'bestellungen-daten.json';
-const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra', 'kontaktAend', 'eigene', 'gesendet'];
+const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra', 'kontaktAend', 'minbestand', 'zaehlung', 'eigene', 'gesendet'];
 const GLOBAL = ['letzterWeg', 'letzterBesteller'];
 const sySave = () => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(SY)); } catch (e) { /* egal */ } };
 const syAktiv = () => !!(SY.token && SY.owner && SY.repo);
@@ -1418,7 +1499,7 @@ function kachelHtml(f) {
           <span class="k-unter">${esc(f.untertitel)}</span>
           <span class="k-info">${f.saison
             ? `${ges} Artikel${aktiveKunden(f).length ? ` · 👥 ${aktiveKunden(f).length} Kunden` : ''}<br>${gs ? `✓ per MDE gesendet ${esc(gs.datum)}` : `📟 Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}`
-            : `${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}${letzte.status === 'geliefert' ? ' · ✓ geliefert'
+            : `${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${unterMin(f).length ? `<br><b class="rot-text">📋 ${unterMin(f).length} unter Mindestbestand</b>` : ''}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}${letzte.status === 'geliefert' ? ' · ✓ geliefert'
               : letzte.status === 'storniert' ? ' · ✕ storniert' : ' · ⏳ Lieferung offen'}` : ''}`}</span>
         </span>
         ${p ? `<span class="k-marke" title="Positionen im Bestellzettel">${p}</span>` : ''}
@@ -1432,12 +1513,17 @@ function produkteHtml(f) {
   return `
     <div class="werkzeug">
       <input id="suche" type="search" placeholder="Suchen: Name oder Art.-Nr." value="${esc(UI.suche)}" autocomplete="off" enterkeyhint="search">
-      <button class="knopf ${UI.bearbeiten ? 'aktiv' : ''}" data-akt="bearbeiten">${UI.bearbeiten ? 'Fertig' : 'Bearbeiten'}</button>
+      ${f.saison || UI.bearbeiten ? '' : `<button class="knopf ${UI.zaehlen ? 'aktiv' : ''}" data-akt="zaehlen">${UI.zaehlen ? 'Fertig' : 'Bestand'}</button>`}
+      ${UI.zaehlen ? '' : `<button class="knopf ${UI.bearbeiten ? 'aktiv' : ''}" data-akt="bearbeiten">${UI.bearbeiten ? 'Fertig' : 'Bearbeiten'}</button>`}
     </div>
     <div class="hinweiszeile">${esc(f.stand)}${preisHinweisVon(f) ? '<br>' + esc(preisHinweisVon(f)) : ''}${f.saison
       ? `<br>📟 Abgabe per MDE: <b>${esc(f.fristText)}</b> · ${esc(fristRest(f))}` : ''}</div>
     ${UI.bearbeiten ? `<div class="info-box">Schalter aus = ${f.saison ? 'Artikel' : 'Produkt'} wird ausgeblendet.${f.ohnePreise
       ? '<br>Eigene Artikel bearbeitest du mit ✏️.' : '<br>Preise kannst du direkt ändern – Feld leeren = wieder Listenpreis.'}<br>Mit <b>Fertig</b> geht es zurück zum Bestellen.</div>` : ''}
+    ${UI.zaehlen ? `<div class="info-box"><b>Min.</b> = Mindestbestand, <b>Bestand</b> = was jetzt da ist – beides in ${f.mitVpe ? 'VPE' : 'Kartons bzw. Rollen'} (Kommazahlen gehen, z. B. 1,5).
+      Liegt der Bestand darunter, schlägt die App die fehlende Menge vor.
+      <label class="nur-min"><input type="checkbox" data-nurmin ${UI.nurMin ? 'checked' : ''}> Nur Produkte mit Mindestbestand zeigen</label></div>` : ''}
+    ${bestandKarteHtml(f)}
     <div class="liste-kopf"><button class="link" data-akt="alleKat">Alle auf-/zuklappen</button></div>
     <div id="liste"></div>
     ${f.saison ? eigeneLeisteHtml(f) : ''}
@@ -1471,15 +1557,18 @@ function renderListe() {
     let arts = alleInKat;
     if (q) arts = arts.filter(a => (a.n + ' ' + a.nr + ' ' + (a.artNr || '') + ' ' + (a.d || '') + ' ' + a.k).toLowerCase().includes(q));
     else if (!bearb) arts = arts.filter(a => !aus.has(a.nr));
+    if (UI.zaehlen && UI.nurMin && !f.saison) arts = arts.filter(a => minVon(f, a.nr) !== undefined);
     if (!arts.length) continue;
     gezeigt += arts.length;
-    const offen = q || S.offen[f.id + '|' + k];
+    const offen = q || S.offen[f.id + '|' + k] || (UI.zaehlen && UI.nurMin);
     const bestellt = alleInKat.filter(a => hatMenge(f, a)).length;
+    const unter = f.saison ? 0 : alleInKat.filter(a => { const b = bestandStatus(f, a); return b && b.unter; }).length;
     html += `
       <section class="kat ${offen ? 'offen' : ''}">
         <button class="kat-kopf" data-akt="kat" data-kat="${esc(k)}">
           <span class="pfeil">›</span><span class="kat-name">${esc(k).replace(/ -(?=\S)/g, ' ‑')}</span>
           <span class="zahl">${arts.length}</span>
+          ${f.saison ? '' : `<span class="marke rot" data-katunter="${esc(k)}" title="unter Mindestbestand" ${unter ? '' : 'hidden'}>${unter}</span>`}
           <span class="marke" data-katzahl="${esc(k)}" ${bestellt ? '' : 'hidden'}>${bestellt}</span>
         </button>
         <div class="kat-inhalt">
@@ -1491,6 +1580,7 @@ function renderListe() {
   }
   if (!gezeigt) html = q
     ? `<p class="leer">Nichts gefunden für „${esc(UI.suche)}“.</p>`
+    : UI.zaehlen && UI.nurMin ? `<p class="leer">Noch kein Produkt mit Mindestbestand.<br>Haken „Nur Produkte mit Mindestbestand“ entfernen und bei den Produkten <b>Min.</b> eintragen.</p>`
     : `<p class="leer">Alle Produkte sind ausgeblendet.<br>Über <b>Bearbeiten</b> kannst du sie wieder einblenden.</p>`;
   if (!q && !bearb && aus.size && gezeigt)
     html += `<p class="leer klein">${aus.size} Produkt${aus.size > 1 ? 'e' : ''} ausgeblendet · <button class="link" data-akt="bearbeiten">Bearbeiten</button></p>`;
@@ -1520,10 +1610,17 @@ function zeileHtml(f, a, aus, bearb, mitName) {
   const hinweis = hinweisVon(f, a) && !geaendert ? `<div class="warn">⚠ ${esc(hinweisVon(f, a))}</div>` : '';
   const rechts = bearb
     ? `<label class="schalter" aria-label="sichtbar"><input type="checkbox" data-sichtbar data-nr="${esc(a.nr)}" ${istAus ? '' : 'checked'}><span></span></label>`
+    : UI.zaehlen
+    ? `<div class="bst-felder">
+        <label><span>Min.</span><input data-min data-nr="${esc(a.nr)}" type="text" inputmode="decimal" value="${minVon(f, a.nr) !== undefined ? String(minVon(f, a.nr)).replace('.', ',') : ''}" placeholder="–" aria-label="Mindestbestand"></label>
+        <label><span>Bestand</span><input data-ist data-nr="${esc(a.nr)}" type="text" inputmode="decimal" value="${istVon(f, a.nr) !== undefined ? String(istVon(f, a.nr)).replace('.', ',') : ''}" placeholder="–" aria-label="Bestand"></label>
+      </div>`
     : stepperHtml(a.nr, m);
+  const bst = bestandZeileHtml(f, a), b = bestandStatus(f, a);
   return `
-    <div class="art ${m ? 'hat-menge' : ''} ${istAus ? 'aus' : ''} ${mitName ? '' : 'variante'}" data-zeile="${esc(a.nr)}">
-      <div class="art-text">${mitName ? `<div class="a-name">${esc(a.n)}</div>` : ''}${info}${preis}${hinweis}
+    <div class="art ${m ? 'hat-menge' : ''} ${istAus ? 'aus' : ''} ${mitName ? '' : 'variante'} ${b && b.unter ? 'unter-min' : ''}" data-zeile="${esc(a.nr)}">
+      <div class="art-text">${mitName ? `<div class="a-name">${esc(a.n)}</div>` : ''}${info}${UI.zaehlen ? '' : preis}${hinweis}
+        <div class="bst-zeile" data-bst="${esc(a.nr)}">${bst}</div>
         ${istAus && !bearb ? '<div class="aus-label">ausgeblendet</div>' : ''}</div>
       ${rechts}
     </div>`;
@@ -1579,6 +1676,7 @@ function nachMengenAenderung(f, nr) {
   if (t) { const n = positionen(f).length; t.textContent = n; t.hidden = !n; }
   const lb = $('#leisteBox');
   if (lb && !UI.bearbeiten) lb.innerHTML = leisteHtml(f);
+  if (!f.saison && (minVon(f, id) !== undefined || istVon(f, id) !== undefined)) bestandAktualisieren(f, id);
 }
 
 /* Bestellzettel */
@@ -1653,6 +1751,9 @@ function bestellungHtml(f) {
         <span>Kopfdaten<span class="sub" id="kopfSub">${kopfSubText(k)}</span></span></button>
       <div class="klapp-inhalt">${felder}</div>
     </section>
+    ${offeneVorschlaege(f).length ? `<div class="info-box bestand-box unter">📋 <b>${unterMin(f).length} Produkt${unterMin(f).length > 1 ? 'e' : ''} unter Mindestbestand</b>
+      (Zählung vom ${esc(isoZuDe(S.zaehlung[f.id].datum).slice(0, 6))})<br>
+      <button class="knopf" style="margin-top:8px" data-akt="minAlle">Vorschläge übernehmen (${offeneVorschlaege(f).length})</button></div>` : ''}
     <section class="karte">
       <h3>Bestellung ${esc(f.bestellweg)}</h3>
       ${posHtml}
@@ -2313,6 +2414,7 @@ function ablegen(f) {
   S.letzterWeg[f.id] = weg;
   S.mengen[f.id] = {};
   const kk = S.kopf[f.id] || {}; delete kk.liefertermin; delete kk.bemerkung; S.kopf[f.id] = kk;
+  delete S.zaehlung[f.id];   /* die Zählung ist mit der Bestellung erledigt – nächstes Mal neu zählen */
   speichern();
   schliesseOverlay();
   UI.histOffen = true;
@@ -2354,6 +2456,11 @@ function hilfeHtml() {
       <p>Nach dem Bestellen <b>✓ Bestellt – ablegen</b> antippen und angeben, wie bestellt wurde: Telefon (mit Gesprächspartner/in), Fax, MDE oder E-Mail. Dazu Datum und eine Notiz, z. B. „Lieferung Donnerstag zugesagt“. Danach ist der Bestellzettel wieder leer.</p>
       <p>Unter <b>Frühere Bestellungen</b> siehst du alles wieder (antippen zum Aufklappen) und kannst eine Bestellung erneut übernehmen.</p>
       <p>Kommt die Ware, tippst du im aufgeklappten Eintrag auf <b>📦 Heute geliefert</b>. Mit <b>✏️ Bearbeiten</b> stellst du ein anderes Lieferdatum ein, markierst eine Bestellung als <b>storniert</b> oder änderst Datum, Bestellweg, Gesprächspartner und Notiz (z. B. „Teillieferung, Rest kommt Freitag“). Offene Lieferungen sind mit ⏳ markiert – auch auf der Kachel.</p></details>
+    <details><summary>📋 Mindestbestand & Bestand zählen</summary>
+      <p>Unter <b>Produkte</b> › <b>Bestand</b> stehen bei jedem Produkt zwei Felder: <b>Min.</b> = Mindestbestand (einmal eintragen, bleibt) und <b>Bestand</b> = was gerade da ist. Beides in der Bestelleinheit (VPE, Karton, Rolle), Kommazahlen gehen.</p>
+      <p>Liegt der Bestand unter dem Mindestbestand, wird das Produkt rot markiert und die fehlende Menge vorgeschlagen – einzeln „übernehmen“ oder <b>Alle Vorschläge übernehmen</b>.</p>
+      <p>Tipp zum Zählen im Lager: „Nur Produkte mit Mindestbestand zeigen“ ankreuzen. Mit <b>Fertig</b> geht es zurück zum Bestellen. Die Kachel zeigt, wie viele Produkte unter dem Mindestbestand sind.</p>
+      <p>Beim <b>Ablegen</b> der Bestellung ist die Zählung erledigt und wird geleert – die Mindestbestände bleiben.</p></details>
     <details><summary>Kontakt</summary>
       <p>Telefonnummer antippen = anrufen. Faxnummern und die Kundennummer kannst du kopieren, die Anschrift öffnet die Karte. Eigene Kontakte (z. B. Außendienst) fügst du unten hinzu.</p>
       <p>Mit <b>✏️</b> bearbeitest du jeden Eintrag – auch die vorgegebenen: <b>Name</b> des Ansprechpartners eintragen, Bezeichnung oder Nummer ändern. Bei vorgegebenen Einträgen holt „Original wiederherstellen“ den alten Stand zurück. Eingetragene Namen schlägt die App beim Ablegen einer telefonischen Bestellung als Gesprächspartner vor.</p></details>
@@ -2434,7 +2541,25 @@ document.addEventListener('click', e => {
       speichern(); renderListe();
       break;
     }
-    case 'bearbeiten': UI.bearbeiten = !UI.bearbeiten; neuZeichnen(); break;
+    case 'bearbeiten': UI.bearbeiten = !UI.bearbeiten; UI.zaehlen = false; neuZeichnen(); break;
+    case 'zaehlen': UI.zaehlen = !UI.zaehlen; UI.bearbeiten = false; neuZeichnen(); break;
+    case 'minVorschlag': {
+      const b = bestandStatus(f, artikelNr(f, el.dataset.nr));
+      if (b && b.unter) { setMenge(f, el.dataset.nr, Math.max(menge(f, el.dataset.nr), b.vorschlag)); toast('In den Bestellzettel übernommen ✓'); }
+      break;
+    }
+    case 'minAlle': {
+      const liste = offeneVorschlaege(f);
+      if (!liste.length) break;
+      const mm = (S.mengen[f.id] ||= {});
+      liste.forEach(x => { mm[x.a.nr] = Math.max(mm[x.a.nr] || 0, x.b.vorschlag); });
+      speichern(); neuZeichnen();
+      toast(`${liste.length} Vorschl${liste.length > 1 ? 'äge' : 'ag'} übernommen ✓`);
+      break;
+    }
+    case 'zaehlungLeeren':
+      if (confirm('Gezählte Bestände leeren?\n\nDie Mindestbestände bleiben.')) { delete S.zaehlung[f.id]; speichern(); neuZeichnen(); }
+      break;
     case 'katAn': case 'katAus':
       alleArtikel(f).filter(a => a.k === el.dataset.kat).forEach(a => setSichtbar(f, a.nr, akt === 'katAn'));
       renderListe();
@@ -2623,6 +2748,11 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target, f = UI.firma;
   if (t.id === 'suche') { UI.suche = t.value; renderListe(); return; }
+  if ((t.matches('[data-min]') || t.matches('[data-ist]')) && f) {
+    setBestand(f, t.matches('[data-min]') ? 'min' : 'ist', t.dataset.nr, t.value);
+    bestandAktualisieren(f, t.dataset.nr);
+    return;
+  }
   if (t.id === 'kFilter') { UI.kFilter = t.value; const l = $('#kListe'); if (l && f) l.innerHTML = kListeHtml(f); return; }
   if (t.id === 'kfSuche' && UI.kDraft) { UI.kSuche = t.value; const r = $('#kfTreffer'); if (r) r.innerHTML = kfTrefferHtml(f); return; }
   if (t.matches('[data-kf]') && UI.kDraft) { UI.kDraft[t.dataset.kf] = t.value; return; }
@@ -2642,6 +2772,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const t = e.target, f = UI.firma;
   if (t.matches('[data-menge]')) { setMenge(f, t.dataset.nr, t.value); return; }
+  if (t.matches('[data-nurmin]')) { UI.nurMin = t.checked; renderListe(); return; }
   if (t.matches('[data-sichtbar]')) {
     setSichtbar(f, t.dataset.nr, t.checked);
     t.closest('.art').classList.toggle('aus', !t.checked);
@@ -2672,13 +2803,13 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#overlay').hidden) schliesseOverlay(); });
 /* Zahlenfeld beim Antippen komplett markieren – so ersetzt die neue Zahl die alte */
-document.addEventListener('focusin', e => { if (e.target.matches('[data-menge],[data-kfm]')) setTimeout(() => e.target.select(), 0); });
+document.addEventListener('focusin', e => { if (e.target.matches('[data-menge],[data-kfm],[data-min],[data-ist]')) setTimeout(() => e.target.select(), 0); });
 
 function route() {
   const [id, reiter] = location.hash.replace(/^#\/?/, '').split('/');
   const f = firmaById(id);
   const neueSeite = f !== UI.firma || (reiter || 'produkte') !== UI.reiter;
-  if (f !== UI.firma) { UI.bearbeiten = false; UI.suche = ''; UI.kopfOffen = null; UI.histOffen = false; UI.neuOffen = false; UI.kDraft = null; UI.kSuche = ''; }
+  if (f !== UI.firma) { UI.zaehlen = false; UI.bearbeiten = false; UI.suche = ''; UI.kopfOffen = null; UI.histOffen = false; UI.neuOffen = false; UI.kDraft = null; UI.kSuche = ''; }
   UI.firma = f;
   UI.reiter = f && reiterVon(f).some(([id]) => id === reiter) ? reiter : 'produkte';
   render();
