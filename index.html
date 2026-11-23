@@ -141,6 +141,18 @@ a.link{display:inline-block;text-decoration:none}
 .feld input,.feld textarea,.feld select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--linie);
   background:var(--bg);padding:9px 11px;font-size:16px}
 .feld textarea{min-height:64px;resize:vertical}
+.feld input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left}
+.feld input[type=date]::-webkit-date-and-time-value{text-align:left}
+.st{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:1px;white-space:nowrap}
+.st.offen{background:var(--warn-bg);color:var(--warn)}
+.st.geliefert{background:rgba(43,138,62,.14);color:var(--ok)}
+.st.storniert{background:rgba(201,42,42,.12);color:var(--rot)}
+details.hist.storniert summary > b{text-decoration:line-through;opacity:.7}
+.hist-akt{flex-wrap:wrap;gap:4px 10px}
+.kunde.storniert .a-name,.kunde.storniert .info{text-decoration:line-through;opacity:.5}
+.kunde.storniert .k-haken span{color:var(--rot);border-color:var(--rot)}
+.storno-feld{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:15px}
+.storno-feld input{width:22px;height:22px;flex:none}
 .pos{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 14px;border-top:1px solid var(--linie)}
 .pos:first-child{border-top:0}
 .summe{display:flex;justify-content:space-between;align-items:baseline;padding:13px 14px;border-top:2px solid var(--linie);font-weight:700;font-size:17px}
@@ -365,8 +377,14 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const VERSIONEN = [
+  { v: '1.8', datum: '23.11.2026', neu: [
+    'Frühere Bestellungen (Remsgold, Weber) lassen sich bearbeiten: Status „geliefert am …“ oder „storniert“, dazu Datum, Bestellweg, Gesprächspartner und Notiz',
+    '„📦 Heute geliefert“ mit einem Tipp; offene Lieferungen sind mit ⏳ markiert – auch auf der Kachel',
+    'Rasting-Kundenbestellungen: „storniert“ (Kunde hat abgesagt) – der Zettel bleibt sichtbar, zählt aber nicht mehr zum Bedarf',
+    'Datumsfeld „Gewünschter Liefertermin“ ragte auf dem iPhone über den Rand – behoben',
+  ]},
   { v: '1.7', datum: '23.11.2026', neu: [
     'Kontakt: alle Einträge lassen sich mit ✏️ bearbeiten – auch die vorgegebenen. Neu ist das Feld „Name“ für den Ansprechpartner (z. B. wer unter der Durchwahl abnimmt)',
     'Vorgegebene Kontakte: Nummer und Bezeichnung änderbar, „Original wiederherstellen“ jederzeit möglich',
@@ -935,8 +953,9 @@ function restText(iso) {
 const WOTAG = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const isoKurz = iso => iso ? WOTAG[new Date(iso + 'T12:00:00').getDay()] + ' ' + iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' : '';
 const tagIso = (f, t) => { const [d, m] = t.split('.'); return `${f.frist.slice(0, 4)}-${m}-${d}`; };
+const aktiveKunden = f => kundenListe(f).filter(k => !k.storniert);
 const kundenListe = f => Object.values(S.kunden[f.id] || {}).sort((x, y) =>
-  (x.abhol || '9').localeCompare(y.abhol || '9') || (x.uhr || '99').localeCompare(y.uhr || '99') || String(x.name).localeCompare(String(y.name), 'de'));
+  (x.abhol || '9').localeCompare(y.abhol || '9') || (x.storniert ? 1 : 0) - (y.storniert ? 1 : 0) || (x.uhr || '99').localeCompare(y.uhr || '99') || String(x.name).localeCompare(String(y.name), 'de'));
 const einheitenVon = a => a.pe === 'kg' ? ['g', 'kg'] : [a.pe];
 const einheitKurz = e => e === 'St' ? 'St.' : e;
 const kMengeText = z => zahlKurz(z.m) + ' ' + einheitKurz(z.e);
@@ -954,7 +973,7 @@ function lieferTagFuer(f, a, k) {
 function bedarf(f) {
   const out = {};
   if (!f || !f.saison) return out;
-  for (const k of kundenListe(f)) for (const z of k.pos || []) {
+  for (const k of kundenListe(f)) for (const z of k.storniert ? [] : k.pos || []) {
     const a = artikelNr(f, z.nr);
     if (!a || !(z.m > 0)) continue;
     const t = lieferTagFuer(f, a, k), key = a.nr + '@' + t;
@@ -1126,7 +1145,11 @@ function mergeSync(L, R) {
   const lh = L.historie || {}, rh = R.historie || {};
   for (const id of new Set([...Object.keys(lh), ...Object.keys(rh)])) {
     const m = new Map();
-    for (const h of [...(rh[id] || []), ...(lh[id] || [])]) if (h && !weg.has(String(h.id))) m.set(String(h.id), h);
+    for (const h of [...(rh[id] || []), ...(lh[id] || [])]) {
+      if (!h || weg.has(String(h.id))) continue;
+      const alt = m.get(String(h.id));
+      if (!alt || (h.t || 0) >= (alt.t || 0)) m.set(String(h.id), h);
+    }
     const liste = [...m.values()].sort(histSort).slice(0, 60);
     if (liste.length) out.historie[id] = liste;
   }
@@ -1347,7 +1370,7 @@ function renderKopf() {
     </div>
     ${f ? `<nav class="reiter">
       ${reiterVon(f).map(([id, t]) => {
-        const kz = id === 'kunden' ? kundenListe(f).length : 0;
+        const kz = id === 'kunden' ? aktiveKunden(f).length : 0;
         return `<a href="#/${f.id}/${id}" class="${UI.reiter === id ? 'aktiv' : ''}" data-reiter="${id}">${t}${id === 'bestellung'
           ? ` <span class="marke" data-reiterzahl ${n ? '' : 'hidden'}>${n}</span>` : ''}${id === 'kunden'
           ? ` <span class="marke" data-kundenzahl ${kz ? '' : 'hidden'}>${kz}</span>` : ''}</a>`; }).join('')}
@@ -1394,8 +1417,9 @@ function kachelHtml(f) {
           <span class="k-name">${esc(f.name)}</span>
           <span class="k-unter">${esc(f.untertitel)}</span>
           <span class="k-info">${f.saison
-            ? `${ges} Artikel${kundenListe(f).length ? ` · 👥 ${kundenListe(f).length} Kunden` : ''}<br>${gs ? `✓ per MDE gesendet ${esc(gs.datum)}` : `📟 Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}`
-            : `${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}` : ''}`}</span>
+            ? `${ges} Artikel${aktiveKunden(f).length ? ` · 👥 ${aktiveKunden(f).length} Kunden` : ''}<br>${gs ? `✓ per MDE gesendet ${esc(gs.datum)}` : `📟 Abgabe ${esc(f.fristText)} · ${esc(fristRest(f))}`}`
+            : `${aus ? `${ges - aus} von ${ges} Produkten sichtbar` : `${ges} Produkte`}${letzte ? `<br>zuletzt bestellt ${esc(letzte.datum)}${letzte.weg ? ' per ' + wegName(letzte.weg) : ''}${letzte.status === 'geliefert' ? ' · ✓ geliefert'
+              : letzte.status === 'storniert' ? ' · ✕ storniert' : ' · ⏳ Lieferung offen'}` : ''}`}</span>
         </span>
         ${p ? `<span class="k-marke" title="Positionen im Bestellzettel">${p}</span>` : ''}
         <span class="k-pfeil">›</span>
@@ -1606,13 +1630,16 @@ function bestellungHtml(f) {
     : `<p class="leer">Noch nichts im Bestellzettel.<br>Mengen trägst du unter <b>Produkte</b> ein.</p>`;
 
   const histHtml = hist.length ? hist.map(h => `
-    <details class="hist">
+    <details class="hist ${h.status || 'offen'}">
       <summary><b>${esc(h.datum)}${h.zeit ? ', ' + esc(h.zeit) : ''}</b>${h.weg ? ' · ' + wegText(h.weg) : ''}${h.partner ? ' · mit ' + esc(h.partner) : ''}
+        ${statusMarke(h)}
         <span class="hist-sub">${h.posten.length} Pos.${h.summe ? ' · ' + eur(h.summe) : ''}${h.besteller ? ' · bestellt von ' + esc(h.besteller) : ''}</span></summary>
       ${h.notiz ? `<div class="notiz">📝 ${esc(h.notiz)}</div>` : ''}
       <ul>${h.posten.map(p => { const a = artikelNr(f, p.nr);
         return `<li>${p.m} ${esc(a ? einheit(f, a, p.m) : '')} · ${esc(a ? a.n : p.nr)} <span class="leise">(${esc(a ? gebindeText(f, a) : 'Art. ' + p.nr)})</span></li>`; }).join('')}</ul>
       <div class="hist-akt">
+        ${h.status ? '' : `<button class="link" data-akt="histGeliefert" data-id="${h.id}">📦 Heute geliefert</button>`}
+        <button class="link" data-akt="histBearb" data-id="${h.id}">✏️ Bearbeiten</button>
         <button class="link" data-akt="histUebernehmen" data-id="${h.id}">In Bestellzettel übernehmen</button>
         <button class="link rot" data-akt="histLoeschen" data-id="${h.id}">Löschen</button>
       </div>
@@ -1641,7 +1668,7 @@ function bestellungHtml(f) {
       </div>
     </div>` : ''}
     <section class="karte klapp ${UI.histOffen ? 'offen' : ''}" data-merk="histOffen">
-      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Frühere Bestellungen (${hist.length})</span></button>
+      <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Frühere Bestellungen (${hist.length})${(() => { const o = hist.filter(h => !h.status).length; return o ? `<span class="sub">⏳ ${o} Lieferung${o > 1 ? 'en' : ''} offen</span>` : ''; })()}</span></button>
       <div class="klapp-inhalt">${histHtml}</div>
     </section>`;
 }
@@ -1688,7 +1715,7 @@ function ansprechpartnerHtml(f, kompakt) {
 }
 function bestellungSaisonHtml(f) {
   const pos = positionen(f), gs = S.gesendet[f.id], deltas = saisonDeltas(f), hist = S.historie[f.id] || [];
-  const bd = bedarf(f), fehlt = fehlende(f, bd), nKunden = kundenListe(f).length;
+  const bd = bedarf(f), fehlt = fehlende(f, bd), nKunden = aktiveKunden(f).length;
   const vorbei = new Date(f.frist).getTime() <= Date.now();
   const status = gs
     ? `<div class="saison-status ok">✓ <b>Per MDE gesendet</b> am ${esc(gs.datum)}${gs.uhr ? ', ' + esc(gs.uhr) + ' Uhr' : ''}
@@ -1761,6 +1788,45 @@ function bestellungSaisonHtml(f) {
       <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span><span>Verlauf (${hist.length})</span></button>
       <div class="klapp-inhalt">${histHtml}</div>
     </section>`;
+}
+/* Status einer früheren Bestellung: '' = Lieferung offen, 'geliefert', 'storniert' (mit Datum statusIso) */
+const statusMarke = h => h.status === 'geliefert' ? `<span class="st geliefert">✓ geliefert${h.statusIso ? ' ' + esc(isoZuDe(h.statusIso).slice(0, 6)) : ''}</span>`
+  : h.status === 'storniert' ? `<span class="st storniert">✕ storniert${h.statusIso ? ' ' + esc(isoZuDe(h.statusIso).slice(0, 6)) : ''}</span>`
+  : `<span class="st offen">⏳ Lieferung offen</span>`;
+function histFinden(f, id) { return (S.historie[f.id] || []).find(x => String(x.id) === String(id)); }
+function histBearbHtml(f, h) {
+  const st = h.status || '';
+  return `
+    <h2>Bestellung bearbeiten</h2>
+    <p class="leise" style="margin:0">${esc(f.name)} · ${h.posten.length} Pos.${h.summe ? ' · ' + eur(h.summe) : ''}</p>
+    <div class="feld"><span>Status</span><div class="wege">${[['', '⏳', 'offen'], ['geliefert', '📦', 'geliefert'], ['storniert', '✕', 'storniert']].map(([id, ic, t]) => `
+      <label class="weg"><input type="radio" name="hbStatus" value="${id}" ${st === id ? 'checked' : ''}><span>${ic}<br>${t}</span></label>`).join('')}</div></div>
+    <label class="feld" id="hbDatumFeld" ${st ? '' : 'hidden'}><span id="hbDatumText">${st === 'storniert' ? 'Storniert am' : 'Geliefert am'}</span>
+      <input id="hb-statusdatum" type="date" value="${esc(h.statusIso || heuteIso())}"></label>
+    <label class="feld"><span>Bestellt am</span><input id="hb-datum" type="date" value="${esc(h.iso || '')}"></label>
+    <div class="feld"><span>Bestellt per</span><div class="wege">${WEGE.map(([id, ic, t]) => `
+      <label class="weg"><input type="radio" name="hbWeg" value="${id}" ${id === h.weg ? 'checked' : ''}><span>${ic}<br>${t}</span></label>`).join('')}</div></div>
+    <label class="feld" id="hbPartnerFeld" ${h.weg === 'telefon' ? '' : 'hidden'}><span>Gesprächspartner/in</span>
+      <input id="hb-partner" list="hbNamen" value="${esc(h.partner || '')}" autocomplete="off"></label>
+    <datalist id="hbNamen">${[...new Set([...kontaktNamen(f), ...(S.historie[f.id] || []).map(x => x.partner).filter(Boolean)])].map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    <label class="feld"><span>Notiz</span><textarea id="hb-notiz" rows="2" placeholder="z. B. Teillieferung, Rest kommt Freitag">${esc(h.notiz || '')}</textarea></label>
+    <button class="knopf ok" style="margin-top:14px" data-akt="histSpeichern" data-id="${h.id}">✓ Speichern</button>`;
+}
+function histSpeichern(f, id) {
+  const h = histFinden(f, id);
+  if (!h) return;
+  const st = ($('input[name=hbStatus]:checked') || {}).value || '';
+  const weg = ($('input[name=hbWeg]:checked') || {}).value || h.weg;
+  const iso = $('#hb-datum').value || h.iso;
+  if (iso !== h.iso) { h.iso = iso; h.datum = isoZuDe(iso); h.zeit = ''; }
+  h.status = st;
+  h.statusIso = st ? ($('#hb-statusdatum').value || heuteIso()) : '';
+  h.weg = weg;
+  h.partner = weg === 'telefon' ? $('#hb-partner').value.trim() : '';
+  h.notiz = $('#hb-notiz').value.trim();
+  h.t = Date.now();
+  S.historie[f.id].sort(histSort);
+  speichern(); schliesseOverlay(); UI.histOffen = true; neuZeichnen(); toast('Gespeichert ✓');
 }
 function histEintrag(f, weg, partner, notiz, posten) {
   const iso = heuteIso();
@@ -1862,7 +1928,7 @@ function druckSaisonHtml(f) {
 function kundenHtml(f) {
   if (UI.kDraft) return kundeFormHtml(f);
   const liste = kundenListe(f), bd = bedarf(f), fehlt = fehlende(f, bd), vorbei = new Date(f.kundenFrist).getTime() <= Date.now();
-  const abgeholt = liste.filter(k => k.abgeholt).length;
+  const abgeholt = liste.filter(k => k.abgeholt && !k.storniert).length, storniert = liste.filter(k => k.storniert).length;
   const bdTage = f.tage.map(t => {
     const zeilen = Object.values(bd).filter(b => b.tag === t).sort((x, y) => alleArtikel(f).indexOf(x.a) - alleArtikel(f).indexOf(y.a));
     if (!zeilen.length) return '';
@@ -1877,7 +1943,7 @@ function kundenHtml(f) {
     <div class="aktionen"><button class="knopf haupt" data-akt="kNeu">＋ Wunschzettel erfassen</button></div>
     ${liste.length ? `
     <section class="karte kd-karte ${fehlt.length ? 'fehlt' : 'ok'}"><div class="karte-inhalt">
-      <b>${liste.length} Wunschzettel</b> · ${abgeholt} abgeholt
+      <b>${liste.length - storniert} Wunschzettel</b> · ${abgeholt} abgeholt${storniert ? ` · ${storniert} storniert` : ''}
       <div class="kd-status">${fehlt.length ? `🔴 ${fehlt.length} Artikel reich${fehlt.length > 1 ? 'en' : 't'} noch nicht` : '✓ Die Bestellung deckt alle Kundenwünsche'}</div>
       <a class="link" href="#/${f.id}/bestellung">${fehlt.length ? 'Zur Bestellung – Vorschläge übernehmen ›' : 'Zur Bestellung ›'}</a>
     </div></section>
@@ -1899,11 +1965,11 @@ function kListeHtml(f) {
   if (!liste.length) return `<p class="leer klein">Niemand gefunden für „${esc(UI.kFilter)}“.</p>`;
   const tage = [...new Set(liste.map(k => k.abhol || ''))];
   return tage.map(iso => {
-    const gr = liste.filter(k => (k.abhol || '') === iso), ab = gr.filter(k => k.abgeholt).length, merk = 'kz_' + (iso || 'ohne');
+    const gr = liste.filter(k => (k.abhol || '') === iso), ab = gr.filter(k => k.abgeholt && !k.storniert).length, sto = gr.filter(k => k.storniert).length, merk = 'kz_' + (iso || 'ohne');
     return `
       <section class="karte klapp ${UI[merk] === false && !q ? '' : 'offen'}" data-merk="${merk}">
         <button class="klapp-kopf" data-akt="klapp"><span class="pfeil">›</span>
-          <span>${iso ? 'Abholung ' + esc(isoKurz(iso)) : 'Ohne Abholtag'}<span class="sub">${gr.length} Kunde${gr.length > 1 ? 'n' : ''}${ab ? ` · ${ab} abgeholt` : ''}</span></span></button>
+          <span>${iso ? 'Abholung ' + esc(isoKurz(iso)) : 'Ohne Abholtag'}<span class="sub">${gr.length - sto} Kunde${gr.length - sto === 1 ? '' : 'n'}${ab ? ` · ${ab} abgeholt` : ''}${sto ? ` · ${sto} storniert` : ''}</span></span></button>
         <div class="klapp-inhalt ohne-rand">${gr.map(k => kundeZeileHtml(f, k)).join('')}</div>
       </section>`;
   }).join('');
@@ -1911,13 +1977,14 @@ function kListeHtml(f) {
 function kundeZeileHtml(f, k) {
   const pos = (k.pos || []).map(z => { const a = artikelNr(f, z.nr); return `${esc(a ? kurzName(f, a) : z.nr)} <b>${esc(kMengeText(z))}</b>`; }).join(' · ');
   return `
-    <div class="kunde ${k.abgeholt ? 'abgeholt' : ''}">
-      <label class="k-haken" aria-label="abgeholt"><input type="checkbox" data-kabgeholt="${esc(k.id)}" ${k.abgeholt ? 'checked' : ''}><span>✓</span></label>
+    <div class="kunde ${k.abgeholt ? 'abgeholt' : ''} ${k.storniert ? 'storniert' : ''}">
+      ${k.storniert ? '<span class="k-haken"><span>✕</span></span>' : `<label class="k-haken" aria-label="abgeholt"><input type="checkbox" data-kabgeholt="${esc(k.id)}" ${k.abgeholt ? 'checked' : ''}><span>✓</span></label>`}
       <div class="art-text">
         <div class="a-name">${esc(k.name)}${k.nr ? ` <span class="artnr">Nr. ${esc(k.nr)}</span>` : ''}${k.uhr ? ` <span class="leise">· ${esc(k.uhr)}${/^\d{1,2}([:.]\d{2})?$/.test(k.uhr) ? ' Uhr' : ''}</span>` : ''}</div>
         <div class="info">${pos}</div>
         ${k.notiz ? `<div class="notiz">📝 ${esc(k.notiz)}</div>` : ''}
-        ${k.abgeholt ? '<div class="ok-label">abgeholt</div>' : ''}
+        ${k.storniert ? `<div class="st storniert" style="margin:3px 0 0">✕ storniert${k.storniert !== true ? ' ' + esc(String(k.storniert).slice(0, 6)) : ''}</div>`
+          : k.abgeholt ? '<div class="ok-label">abgeholt</div>' : ''}
       </div>
       <button class="mini" data-akt="kBearb" data-id="${esc(k.id)}" aria-label="Bearbeiten">✏️</button>
     </div>`;
@@ -1935,7 +2002,7 @@ function kundeEntwurf(f, k) {
   }
   return { id: k ? k.id : 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), neu: !k,
            name: k ? k.name : '', nr: k ? k.nr || '' : '', abhol: k ? k.abhol || '' : '', uhr: k ? k.uhr || '' : '',
-           liefer: k ? k.liefer || '' : '', notiz: k ? k.notiz || '' : '', pos };
+           liefer: k ? k.liefer || '' : '', notiz: k ? k.notiz || '' : '', storniert: k ? k.storniert || '' : '', pos };
 }
 function kfWarnung(f, d, z) {
   const a = artikelNr(f, z.nr);
@@ -1997,6 +2064,8 @@ function kundeFormHtml(f) {
       ${frisch ? `<label class="feld" style="margin-top:0"><span>Frischfisch aus der Lieferung</span>
         <select data-kfsel="liefer"><option value="">automatisch nach Abholtag</option>${T_FRISCH.map(t => `<option value="${t}" ${d.liefer === t ? 'selected' : ''}>${esc(f.tagKurz[t])}</option>`).join('')}</select></label>` : ''}
       <label class="feld"><span>Notiz</span><textarea data-kf="notiz" rows="2" placeholder="z. B. in Scheiben, ohne Haut">${esc(d.notiz)}</textarea></label>
+      ${d.neu ? '' : `<label class="storno-feld"><input type="checkbox" data-kstorno ${d.storniert ? 'checked' : ''}>
+        <span><b>Storniert</b> – Kunde hat abgesagt<br><span class="leise klein">Zettel bleibt sichtbar, zählt aber nicht mehr zum Bedarf</span></span></label>`}
     </div></section>
     <div class="aktionen">
       <button class="knopf ok" data-akt="kfSpeichern">✓ Speichern</button>
@@ -2032,7 +2101,7 @@ function kfSpeichern(f, weiter) {
   if (!d.abhol && !confirm('Ohne Abholtag speichern?\n\nFrischfisch wird dann für die erste Lieferung (Di 22.12.) gezählt.')) return;
   const alt = (S.kunden[f.id] || {})[d.id];
   (S.kunden[f.id] ||= {})[d.id] = { id: d.id, t: Date.now(), name, nr: d.nr.trim(), abhol: d.abhol, uhr: d.uhr.trim(), liefer: d.liefer,
-    notiz: d.notiz.trim(), pos, abgeholt: alt ? !!alt.abgeholt : false, erfasst: alt ? alt.erfasst : heuteDe() };
+    notiz: d.notiz.trim(), pos, abgeholt: alt ? !!alt.abgeholt : false, erfasst: alt ? alt.erfasst : heuteDe(), storniert: d.storniert || '' };
   UI.kDraft = weiter ? kundeEntwurf(f, null) : null; UI.kSuche = '';
   speichern(); render(); window.scrollTo(0, 0);
   toast(alt ? 'Geändert ✓' : weiter ? `„${name}“ gespeichert ✓ – nächster Zettel` : `„${name}“ gespeichert ✓`);
@@ -2048,12 +2117,12 @@ function kundeLoeschen(f, id) {
 function druckAbholHtml(f) {
   const liste = kundenListe(f), tage = [...new Set(liste.map(k => k.abhol || ''))];
   let html = `<div class="d-kopf"><div><div class="d-titel">Abholliste Weihnachten</div><div>Fisch-Vorbestellungen (Rasting)</div></div><div>Stand: ${heuteDe()}</div></div>
-    <div class="d-weg">${liste.length} Wunschzettel</div>`;
+    <div class="d-weg">${liste.filter(k => !k.storniert).length} Wunschzettel</div>`;
   for (const iso of tage) {
     const gr = liste.filter(k => (k.abhol || '') === iso);
     html += `<h3 class="d-tag">${iso ? 'Abholung ' + esc(isoKurz(iso)) : 'Ohne Abholtag'} · ${gr.length} Kunden</h3>
       <table class="d-pos"><thead><tr><th>Name</th><th>Nr.</th><th>Uhrzeit</th><th>Wünsche</th><th>✓</th></tr></thead><tbody>${gr.map(k => `
-        <tr><td><b>${esc(k.name)}</b></td><td>${esc(k.nr || '')}</td><td>${esc(k.uhr || '')}</td>
+        <tr${k.storniert ? ' style="text-decoration:line-through;color:#888"' : ''}><td><b>${esc(k.name)}</b>${k.storniert ? ' <span class="d-klein">(storniert)</span>' : ''}</td><td>${esc(k.nr || '')}</td><td>${esc(k.uhr || '')}</td>
         <td>${(k.pos || []).map(z => { const a = artikelNr(f, z.nr); return `${esc(kMengeText(z))} ${esc(a ? kurzName(f, a) : z.nr)}`; }).join('<br>')}${k.notiz ? `<div class="d-klein">${esc(k.notiz)}</div>` : ''}</td>
         <td class="m">${k.abgeholt ? '✓' : ''}</td></tr>`).join('')}</tbody></table>`;
   }
@@ -2283,7 +2352,8 @@ function hilfeHtml() {
       <p><b>📞 Anrufen</b> wählt direkt den Lieferanten. <b>🖨 Drucken</b> erstellt den Bestellzettel zum Faxen – im Druckdialog kannst du ihn auch als PDF sichern.</p></details>
     <details><summary>Bestellt – ablegen</summary>
       <p>Nach dem Bestellen <b>✓ Bestellt – ablegen</b> antippen und angeben, wie bestellt wurde: Telefon (mit Gesprächspartner/in), Fax, MDE oder E-Mail. Dazu Datum und eine Notiz, z. B. „Lieferung Donnerstag zugesagt“. Danach ist der Bestellzettel wieder leer.</p>
-      <p>Unter <b>Frühere Bestellungen</b> siehst du alles wieder (antippen zum Aufklappen) und kannst eine Bestellung erneut übernehmen.</p></details>
+      <p>Unter <b>Frühere Bestellungen</b> siehst du alles wieder (antippen zum Aufklappen) und kannst eine Bestellung erneut übernehmen.</p>
+      <p>Kommt die Ware, tippst du im aufgeklappten Eintrag auf <b>📦 Heute geliefert</b>. Mit <b>✏️ Bearbeiten</b> stellst du ein anderes Lieferdatum ein, markierst eine Bestellung als <b>storniert</b> oder änderst Datum, Bestellweg, Gesprächspartner und Notiz (z. B. „Teillieferung, Rest kommt Freitag“). Offene Lieferungen sind mit ⏳ markiert – auch auf der Kachel.</p></details>
     <details><summary>Kontakt</summary>
       <p>Telefonnummer antippen = anrufen. Faxnummern und die Kundennummer kannst du kopieren, die Anschrift öffnet die Karte. Eigene Kontakte (z. B. Außendienst) fügst du unten hinzu.</p>
       <p>Mit <b>✏️</b> bearbeitest du jeden Eintrag – auch die vorgegebenen: <b>Name</b> des Ansprechpartners eintragen, Bezeichnung oder Nummer ändern. Bei vorgegebenen Einträgen holt „Original wiederherstellen“ den alten Stand zurück. Eingetragene Namen schlägt die App beim Ablegen einer telefonischen Bestellung als Gesprächspartner vor.</p></details>
@@ -2306,6 +2376,7 @@ function hilfeHtml() {
       <p>Mit <b>Speichern & nächster Zettel</b> geht ein ganzer Stapel schnell. Telefon und Adresse bleiben auf dem Papier.</p>
       <p>Frischfisch zählt die App automatisch zur passenden Lieferung: Abholung Di 22.12. → Lieferung Di 22.12., ab Mi 23.12. → Lieferung Mi 23.12. Bei Abholung Mo 21.12. warnt sie, weil Frischfisch erst Dienstag kommt.</p>
       <p>Unter <b>Bestellung</b> steht je Artikel, was die Kunden wollen, und ob es reicht: <b>🔴 fehlt …</b> oder <b>✓ … für die Theke</b>. „auf X Geb.“ bzw. <b>Alle Vorschläge übernehmen</b> setzt die Mindestmenge in Gebinden. Kommen nach dem Senden noch Zettel dazu, erscheinen die zusätzlichen Gebinde als 🔴 Änderung zum telefonischen Nachbestellen.</p>
+      <p>Sagt ein Kunde ab: Zettel mit ✏️ öffnen, <b>Storniert</b> ankreuzen, speichern – er bleibt sichtbar, zählt aber nicht mehr mit.</p>
       <p>Bei der Abholung den Haken ✓ setzen. Die <b>Abholliste</b> kannst du je Tag drucken. Nach der Saison: <b>Alle Kundenbestellungen löschen</b>.</p></details>
     <details><summary>🔄 Neue Version</summary>
       <p>Liegt auf GitHub eine neuere Version der App, erscheint oben der Hinweis „Version … ist da“. Einfach <b>Jetzt laden</b> antippen – deine Daten bleiben erhalten. Geprüft wird beim Öffnen der App und alle 10 Minuten; im ℹ-Fenster steht, ob deine Version aktuell ist.</p></details>
@@ -2386,6 +2457,15 @@ document.addEventListener('click', e => {
       if (confirm('Bestellzettel wirklich leeren?')) { S.mengen[f.id] = {}; speichern(); neuZeichnen(); }
       break;
     case 'histUebernehmen': histUebernehmen(f, el.dataset.id); break;
+    case 'histBearb': { const h = histFinden(f, el.dataset.id); if (h) zeigeOverlay(histBearbHtml(f, h)); break; }
+    case 'histSpeichern': histSpeichern(f, el.dataset.id); break;
+    case 'histGeliefert': {
+      const h = histFinden(f, el.dataset.id);
+      if (!h) break;
+      h.status = 'geliefert'; h.statusIso = heuteIso(); h.t = Date.now();
+      speichern(); UI.histOffen = true; neuZeichnen(); toast('Als geliefert markiert ✓');
+      break;
+    }
     case 'histLoeschen':
       if (confirm('Diese frühere Bestellung löschen?')) {
         S.historie[f.id] = (S.historie[f.id] || []).filter(h => String(h.id) !== el.dataset.id);
@@ -2574,8 +2654,15 @@ document.addEventListener('change', e => {
     return;
   }
   if (t.name === 'weg') { const pf = $('#partnerFeld'); if (pf) pf.hidden = t.value !== 'telefon'; return; }
+  if (t.name === 'hbWeg') { const pf = $('#hbPartnerFeld'); if (pf) pf.hidden = t.value !== 'telefon'; return; }
+  if (t.name === 'hbStatus') {
+    const df = $('#hbDatumFeld'); if (df) df.hidden = !t.value;
+    const dt = $('#hbDatumText'); if (dt) dt.textContent = t.value === 'storniert' ? 'Storniert am' : 'Geliefert am';
+    return;
+  }
   if (t.name === 'kAbhol' && UI.kDraft) { UI.kDraft.abhol = t.value; neuZeichnen(); return; }
   if (t.matches('[data-kfsel]') && UI.kDraft) { UI.kDraft[t.dataset.kfsel] = t.value; neuZeichnen(); return; }
+  if (t.matches('[data-kstorno]') && UI.kDraft) { UI.kDraft.storniert = t.checked ? heuteDe() : ''; return; }
   if (t.matches('[data-kabgeholt]') && f) {
     const k = (S.kunden[f.id] || {})[t.dataset.kabgeholt];
     if (k) { k.abgeholt = t.checked; k.t = Date.now(); speichern(); neuZeichnen(); }
