@@ -277,15 +277,17 @@ details.hist[open] summary::before{transform:rotate(90deg)}
 /* ---------- Kontakt ---------- */
 .kz{display:flex;align-items:center;border-top:1px solid var(--linie)}
 .kz:first-of-type{border-top:0}
-.kz-link{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 14px;color:inherit;text-decoration:none}
+.kz-link{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 10px 12px 14px;color:inherit;text-decoration:none}
 .kz-icon{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:19px;background:var(--bg)}
 .kz-icon.gruen{background:#2f9e44;color:#fff}
 .kz-text{flex:1;min-width:0;display:flex;flex-direction:column}
 .kz-label{font-size:13px;color:var(--leise)}
 .kz-wert{font-weight:600;overflow-wrap:anywhere}
+.kz-name{font-size:14px;font-weight:600;color:var(--link);margin-top:1px}
 .kz-aktion{flex:none;font-size:14px;font-weight:600;color:var(--link);background:none;border:0;padding:6px}
 .kz-aktion.gruen{color:#fff;background:#2f9e44;border-radius:999px;padding:7px 14px}
 .mini{border:0;background:none;padding:10px 12px;font-size:18px}
+.kz .mini{padding:10px 10px 10px 2px}
 .kundennr{font-size:28px;font-weight:800;letter-spacing:.02em}
 
 /* ---------- Overlay (Hilfe / Info) ---------- */
@@ -363,8 +365,14 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 const VERSIONEN = [
+  { v: '1.7', datum: '23.11.2026', neu: [
+    'Kontakt: alle Einträge lassen sich mit ✏️ bearbeiten – auch die vorgegebenen. Neu ist das Feld „Name“ für den Ansprechpartner (z. B. wer unter der Durchwahl abnimmt)',
+    'Vorgegebene Kontakte: Nummer und Bezeichnung änderbar, „Original wiederherstellen“ jederzeit möglich',
+    'Eingetragene Namen erscheinen als Vorschlag bei „Gesprächspartner/in“, wenn du eine telefonische Bestellung ablegst',
+    'Name und Änderungen gleichen sich zwischen iPhone und iPad ab',
+  ]},
   { v: '1.6', datum: '23.11.2026', neu: [
     'Rasting: neuer Reiter „Kunden“ – Wunschzettel erfassen wie auf Papier: die 10 vorgedruckten Artikel plus weitere aus dem ganzen Ordersatz, mit Abholtag, Uhrzeit und Frischfisch-Liefertag',
     'Die App zählt alle Kundenmengen je Artikel und Liefertag zusammen und schlägt die Gebinde vor – einzeln oder „Alle Vorschläge übernehmen“',
@@ -857,7 +865,7 @@ const FIRMEN = [
 /* ---------- 3. Speicher ---------- */
 const SPEICHER_KEY = 'bestellungen.daten.v1';
 function leererZustand() {
-  return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
+  return { mengen: {}, aus: {}, kopf: {}, kontaktExtra: {}, kontaktAend: {}, historie: {}, offen: {}, preise: {}, letzterWeg: {}, letzterBesteller: '',
            geloescht: [], zeit: {}, eigene: {}, gesendet: {}, kunden: {} };
 }
 function laden() {
@@ -1054,7 +1062,7 @@ function toast(text) {
                                (schreibt die App selbst; die neuere Änderung gewinnt)
    Der Schlüssel bleibt nur auf diesem Gerät. Hochgeladen wird nur nach erfolgreichem Abruf. */
 const STAMM_DATEI = 'stammdaten.json', DATEN_DATEI = 'bestellungen-daten.json';
-const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra', 'eigene', 'gesendet'];
+const TEILE = ['mengen', 'aus', 'kopf', 'preise', 'kontaktExtra', 'kontaktAend', 'eigene', 'gesendet'];
 const GLOBAL = ['letzterWeg', 'letzterBesteller'];
 const sySave = () => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(SY)); } catch (e) { /* egal */ } };
 const syAktiv = () => !!(SY.token && SY.owner && SY.repo);
@@ -1672,10 +1680,10 @@ function saisonZeilen(f, pos, bd, filter) {
   return [...map.values()].sort((x, y) => f.tage.indexOf(x.tag) - f.tage.indexOf(y.tag) || alle.indexOf(x.a) - alle.indexOf(y.a));
 }
 function ansprechpartnerHtml(f, kompakt) {
-  const liste = (stammFirma(f).kontakt || []).filter(x => x.typ === 'tel' || x.typ === 'mobil');
+  const liste = festeKontakte(f).filter(x => x.typ === 'tel' || x.typ === 'mobil');
   if (!liste.length) return `<p class="leise klein">Ansprechpartner kommen mit dem Abgleich (stammdaten.json im privaten Repo).</p>`;
   return kompakt
-    ? `<div class="anruf-reihe">${liste.map(x => `<a class="anruf-chip" href="${telHref(x.wert)}">📞 ${esc(x.label.split(' ')[0])}</a>`).join('')}</div>`
+    ? `<div class="anruf-reihe">${liste.map(x => `<a class="anruf-chip" href="${telHref(x.wert)}">📞 ${esc((x.name || x.label).split(' ')[0])}</a>`).join('')}</div>`
     : liste.map(kontaktZeile).join('');
 }
 function bestellungSaisonHtml(f) {
@@ -1773,7 +1781,7 @@ function mdeGesendet(f) {
 }
 function aenderungHtml(f) {
   const d = saisonDeltas(f);
-  const namen = [...new Set([...(stammFirma(f).kontakt || []).map(k => k.label), ...(S.historie[f.id] || []).map(h => h.partner).filter(Boolean)])];
+  const namen = [...new Set([...kontaktNamen(f), ...(stammFirma(f).kontakt || []).map(k => k.label), ...(S.historie[f.id] || []).map(h => h.partner).filter(Boolean)])];
   return `
     <h2>Änderungen durchgegeben</h2>
     <ul class="delta-liste">${d.map(x => `<li><b>${x.d > 0 ? '+' : ''}${x.d} Geb.</b> ${esc(x.a.n)} <span class="leise">(${esc(f.tagKurz[x.tag])})</span></li>`).join('')}</ul>
@@ -2052,11 +2060,25 @@ function druckAbholHtml(f) {
   return html + `<div class="d-fuss">erstellt mit der App „Bestellungen“ · nach der Saison bitte vernichten</div>`;
 }
 
-/* Kontakt */
+/* Kontakt – vorgegebene Einträge (App + Stammdaten) mit eigenen Änderungen, dazu die eigenen Einträge */
+const kontaktSchluessel = x => x.typ + '|' + x.wert;
+function festeKontakte(f) {
+  const aend = S.kontaktAend[f.id] || {};
+  return [...f.kontakt, ...(stammFirma(f).kontakt || [])].map(o => {
+    const key = kontaktSchluessel(o), a = aend[key] || {};
+    return Object.assign({}, o, { key, original: o, label: a.label || o.label, wert: a.wert || o.wert, name: a.name || '' });
+  });
+}
+const eigeneKontakte = f => (S.kontaktExtra[f.id] || []).map((x, i) => Object.assign({}, x, { eigen: i }));
+/* Namen für die Vorschläge „Gesprächspartner/in“ */
+const kontaktNamen = f => [...festeKontakte(f), ...eigeneKontakte(f)].map(x => x.name).filter(Boolean);
 function kontaktZeile(x) {
-  const loeschen = x.eigen !== undefined
-    ? `<button class="mini" data-akt="kontaktLoeschen" data-i="${x.eigen}" aria-label="Eintrag löschen">🗑</button>` : '';
-  const text = `<span class="kz-text"><span class="kz-label">${esc(x.label)}</span><span class="kz-wert">${esc(x.wert)}</span></span>`;
+  const bearb = x.eigen !== undefined
+    ? `<button class="mini" data-akt="kontaktBearb" data-i="${x.eigen}" aria-label="Eintrag bearbeiten">✏️</button>`
+    : x.key ? `<button class="mini" data-akt="kontaktBearb" data-k="${esc(x.key)}" aria-label="Eintrag bearbeiten">✏️</button>` : '';
+  const loeschen = bearb;
+  const text = `<span class="kz-text"><span class="kz-label">${esc(x.label)}</span><span class="kz-wert">${x.typ === 'mail' ? esc(x.wert).replace('@', '@<wbr>') : esc(x.wert)}</span>${x.name
+    ? `<span class="kz-name">👤 ${esc(x.name)}</span>` : ''}</span>`;
   switch (x.typ) {
     case 'tel': case 'mobil':
       return `<div class="kz"><a class="kz-link" href="${telHref(x.wert)}"><span class="kz-icon gruen">${x.typ === 'mobil' ? '📱' : '📞'}</span>${text}<span class="kz-aktion gruen">Anrufen</span></a>${loeschen}</div>`;
@@ -2073,8 +2095,8 @@ function kontaktZeile(x) {
   }
 }
 function kontaktHtml(f) {
-  const k = kopfDaten(f), privat = stammFirma(f).kontakt || [];
-  const eigene = (S.kontaktExtra[f.id] || []).map((x, i) => Object.assign({}, x, { eigen: i }));
+  const k = kopfDaten(f), privat = stammFirma(f).kontakt || [], fest = festeKontakte(f);
+  const eigene = eigeneKontakte(f);
   const info = f.saison && f.info ? `
     <section class="karte">
       <h3>Weihnachts-Vorbestellung 2026</h3>
@@ -2089,7 +2111,7 @@ function kontaktHtml(f) {
   return `${info}
     <section class="karte">
       <h3>${f.saison ? 'Ansprechpartner Rasting' : esc(f.vollname)}</h3>
-      ${f.kontakt.map(kontaktZeile).join('')}${privat.map(kontaktZeile).join('')}
+      ${fest.map(kontaktZeile).join('')}
       ${f.saison && !privat.length ? `<div class="karte-inhalt leise klein">Die Ansprechpartner kommen mit dem Abgleich (stammdaten.json im privaten Repo).</div>` : ''}
     </section>
     ${f.saison && !k.kundennr ? '' : `<section class="karte">
@@ -2106,11 +2128,28 @@ function kontaktHtml(f) {
         <label class="feld"><span>Art</span><select id="nk-typ">
           <option value="tel">Telefon</option><option value="mobil">Mobil</option><option value="fax">Fax</option>
           <option value="mail">E-Mail</option><option value="notiz">Notiz</option></select></label>
-        <label class="feld"><span>Bezeichnung</span><input id="nk-label" placeholder="z. B. Außendienst Herr Muster"></label>
+        <label class="feld"><span>Bezeichnung</span><input id="nk-label" placeholder="z. B. Außendienst"></label>
+        <label class="feld"><span>Name (Ansprechpartner)</span><input id="nk-name" placeholder="z. B. Herr Muster" autocomplete="off"></label>
         <label class="feld"><span>Nummer / Adresse / Text</span><input id="nk-wert"></label>
         <button class="knopf haupt" style="margin-top:12px" data-akt="kontaktNeu">Hinzufügen</button>
       </div>
     </section>`;
+}
+
+function kontaktBearbHtml(f, x) {
+  const fest = x.eigen === undefined, geaendert = fest && (x.label !== x.original.label || x.wert !== x.original.wert || x.name);
+  return `
+    <h2>Kontakt bearbeiten</h2>
+    <p class="leise" style="margin:0">${esc(f.name)}${fest ? ' · vorgegebener Eintrag' : ' · eigener Eintrag'}</p>
+    <label class="feld"><span>Name (Ansprechpartner)</span><input id="kb-name" value="${esc(x.name || '')}" placeholder="z. B. Frau Schmidt" autocomplete="off"></label>
+    <label class="feld"><span>Bezeichnung</span><input id="kb-label" value="${esc(x.label)}" autocomplete="off"></label>
+    <label class="feld"><span>${x.typ === 'adresse' ? 'Anschrift' : x.typ === 'mail' ? 'E-Mail' : x.typ === 'web' ? 'Internetadresse' : x.typ === 'notiz' ? 'Text' : 'Nummer'}</span>
+      <input id="kb-wert" value="${esc(x.wert)}" autocomplete="off" ${x.typ === 'tel' || x.typ === 'mobil' || x.typ === 'fax' ? 'inputmode="tel"' : ''}></label>
+    ${fest && x.wert !== x.original.wert ? `<p class="leise klein" style="margin:6px 0 0">Original: ${esc(x.original.wert)}</p>` : ''}
+    <button class="knopf ok" style="margin-top:14px" data-akt="kontaktSpeichern" ${fest ? `data-k="${esc(x.key)}"` : `data-i="${x.eigen}"`}>✓ Speichern</button>
+    <div class="klein-aktionen">${fest
+      ? (geaendert ? `<button class="link" data-akt="kontaktOriginal" data-k="${esc(x.key)}">Original wiederherstellen</button>` : '')
+      : `<button class="link rot" data-akt="kontaktLoeschen" data-i="${x.eigen}">Eintrag löschen</button>`}</div>`;
 }
 
 /* ---------- 6. Drucken / E-Mail / Teilen / Abschließen ---------- */
@@ -2175,7 +2214,7 @@ async function teilen(f) {
 /* Dialog „Bestellt – ablegen“ */
 function ablegenHtml(f) {
   const pos = positionen(f), weg = S.letzterWeg[f.id] || 'telefon';
-  const partner = [...new Set((S.historie[f.id] || []).map(h => h.partner).filter(Boolean))];
+  const partner = [...new Set([...kontaktNamen(f), ...(S.historie[f.id] || []).map(h => h.partner).filter(Boolean)])];
   return `
     <h2>Bestellung ablegen</h2>
     <p class="leise" style="margin:0">${esc(f.name)} · ${pos.length} Position${pos.length === 1 ? '' : 'en'}${hatPreise(f) ? ' · ' + eur(summe(f)) : ''}</p>
@@ -2246,7 +2285,8 @@ function hilfeHtml() {
       <p>Nach dem Bestellen <b>✓ Bestellt – ablegen</b> antippen und angeben, wie bestellt wurde: Telefon (mit Gesprächspartner/in), Fax, MDE oder E-Mail. Dazu Datum und eine Notiz, z. B. „Lieferung Donnerstag zugesagt“. Danach ist der Bestellzettel wieder leer.</p>
       <p>Unter <b>Frühere Bestellungen</b> siehst du alles wieder (antippen zum Aufklappen) und kannst eine Bestellung erneut übernehmen.</p></details>
     <details><summary>Kontakt</summary>
-      <p>Telefonnummer antippen = anrufen. Faxnummern und die Kundennummer kannst du kopieren, die Anschrift öffnet die Karte. Eigene Kontakte (z. B. Außendienst) fügst du unten hinzu.</p></details>
+      <p>Telefonnummer antippen = anrufen. Faxnummern und die Kundennummer kannst du kopieren, die Anschrift öffnet die Karte. Eigene Kontakte (z. B. Außendienst) fügst du unten hinzu.</p>
+      <p>Mit <b>✏️</b> bearbeitest du jeden Eintrag – auch die vorgegebenen: <b>Name</b> des Ansprechpartners eintragen, Bezeichnung oder Nummer ändern. Bei vorgegebenen Einträgen holt „Original wiederherstellen“ den alten Stand zurück. Eingetragene Namen schlägt die App beim Ablegen einer telefonischen Bestellung als Gesprächspartner vor.</p></details>
     <details><summary>⚠ Orange Hinweise</summary>
       <p>Hier war auf dem Foto der Preisliste ein Wert unklar oder passte rechnerisch nicht. Bitte mit der Papierliste vergleichen. Sobald du den Preis unter „Bearbeiten“ korrigierst, verschwindet der Hinweis.</p></details>
     <details><summary>☁️ Abgleich einrichten</summary>
@@ -2360,16 +2400,48 @@ document.addEventListener('click', e => {
       break;
     }
     case 'kontaktNeu': {
-      const typ = $('#nk-typ').value, label = $('#nk-label').value.trim(), wert = $('#nk-wert').value.trim();
+      const typ = $('#nk-typ').value, label = $('#nk-label').value.trim(), wert = $('#nk-wert').value.trim(), name = $('#nk-name').value.trim();
       if (!wert) { toast('Bitte Nummer, Adresse oder Text eintragen.'); return; }
       const namen = { tel: 'Telefon', mobil: 'Mobil', fax: 'Fax', mail: 'E-Mail', notiz: 'Notiz' };
-      (S.kontaktExtra[f.id] ||= []).push({ typ, label: label || namen[typ], wert });
+      (S.kontaktExtra[f.id] ||= []).push(Object.assign({ typ, label: label || namen[typ], wert }, name ? { name } : {}));
       speichern(); UI.neuOffen = false; neuZeichnen(); toast('Kontakt gespeichert');
+      break;
+    }
+    case 'kontaktBearb': {
+      const x = el.dataset.k !== undefined ? festeKontakte(f).find(k => k.key === el.dataset.k) : eigeneKontakte(f)[Number(el.dataset.i)];
+      if (x) zeigeOverlay(kontaktBearbHtml(f, x));
+      break;
+    }
+    case 'kontaktSpeichern': {
+      const name = $('#kb-name').value.trim(), label = $('#kb-label').value.trim(), wert = $('#kb-wert').value.trim();
+      if (!wert) { toast('Die Nummer/Adresse darf nicht leer sein.'); return; }
+      if (el.dataset.k !== undefined) {
+        const x = festeKontakte(f).find(k => k.key === el.dataset.k);
+        if (!x) break;
+        const o = x.original, a = {};
+        if (name) a.name = name;
+        if (label && label !== o.label) a.label = label;
+        if (wert !== o.wert) a.wert = wert;
+        const m = (S.kontaktAend[f.id] ||= {});
+        if (Object.keys(a).length) m[x.key] = a; else delete m[x.key];
+      } else {
+        const liste = S.kontaktExtra[f.id] || [], i = Number(el.dataset.i);
+        if (!liste[i]) break;
+        liste[i] = Object.assign({ typ: liste[i].typ, label: label || liste[i].label, wert }, name ? { name } : {});
+      }
+      speichern(); schliesseOverlay(); neuZeichnen(); toast('Gespeichert ✓');
+      break;
+    }
+    case 'kontaktOriginal': {
+      const m = S.kontaktAend[f.id] || {};
+      if (m[el.dataset.k] && confirm('Name, Bezeichnung und Nummer wieder wie vorgegeben?')) {
+        delete m[el.dataset.k]; speichern(); schliesseOverlay(); neuZeichnen(); toast('Original wiederhergestellt');
+      }
       break;
     }
     case 'kontaktLoeschen': {
       const liste = S.kontaktExtra[f.id] || [], i = Number(el.dataset.i);
-      if (liste[i] && confirm(`„${liste[i].label}“ löschen?`)) { liste.splice(i, 1); speichern(); neuZeichnen(); }
+      if (liste[i] && confirm(`„${liste[i].label}“ löschen?`)) { liste.splice(i, 1); speichern(); schliesseOverlay(); neuZeichnen(); }
       break;
     }
     case 'mdeGesendet': mdeGesendet(f); break;
