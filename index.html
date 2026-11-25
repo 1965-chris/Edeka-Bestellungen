@@ -167,6 +167,9 @@ details.hist.storniert summary > b{text-decoration:line-through;opacity:.7}
 .nur-min{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600}
 .nur-min input{width:20px;height:20px}
 .marke.rot{background:var(--rot);color:#fff}
+.eigen-bearb{display:inline-block;margin-top:4px;font-size:14px;padding:4px 0}
+.eigen-zeile{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:1px solid var(--linie);border-radius:12px;background:var(--karte);padding:10px 12px;margin-top:6px;color:var(--text);font-size:15.5px;font-weight:600}
+.eigen-zeile small{color:var(--leise);font-weight:400;font-size:13px;margin-top:2px}
 .pos{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 14px;border-top:1px solid var(--linie)}
 .pos:first-child{border-top:0}
 .summe{display:flex;justify-content:space-between;align-items:baseline;padding:13px 14px;border-top:2px solid var(--linie);font-weight:700;font-size:17px}
@@ -391,8 +394,13 @@ details.hist[open] summary::before{transform:rotate(90deg)}
    ===================================================================== */
 
 /* ---------- 1. Version & Neuerungen ---------- */
-const APP_VERSION = '1.9';
+const APP_VERSION = '1.10';
 const VERSIONEN = [
+  { v: '1.10', datum: '25.11.2026', neu: [
+    'Rasting – eigene Artikel: ✏️ „Bearbeiten“ steht jetzt direkt am Artikel (nicht mehr nur im Bearbeiten-Modus) und unten in der Liste „Deine eigenen Artikel“',
+    'Im Bearbeiten-Fenster: Gebinde-Inhalt und Einheit (kg, Stück, Packung) mit Vorschau „1 Gebinde = …“, dazu Liefertag und rotes Blatt',
+    'Wechselt die Einheit (z. B. kg → Stück), warnt die App, wenn Kundenbestellungen den Artikel noch in g/kg enthalten',
+  ]},
   { v: '1.9', datum: '23.11.2026', neu: [
     'Mindestbestand je Produkt (Remsgold, Weber und alle künftigen Lieferanten): Knopf „Bestand“ unter Produkte',
     'Beim Durchgehen den aktuellen Bestand eintragen – liegt er unter dem Mindestbestand, wird das Produkt rot und die fehlende Menge als Bestellvorschlag angeboten',
@@ -1640,7 +1648,8 @@ function zeileSaisonHtml(f, a, aus, bearb) {
       ? `<div class="tag-kd ${deckung(b, m).fehlt ? 'fehlt' : ''}" data-kd="${esc(key)}" title="Kundenbestellungen">👥 ${esc(peMenge(a, b.pe))}</div>` : ''}</div>`; }).join('')}</div>`;
   return `
     <div class="art saison ${hatMenge(f, a) ? 'hat-menge' : ''} ${istAus ? 'aus' : ''}" data-zeile="${esc(a.nr)}">
-      <div class="art-text"><div class="a-name">${esc(a.n)}</div>${info}${hinweis}${istAus && !bearb ? '<div class="aus-label">ausgeblendet</div>' : ''}</div>
+      <div class="art-text"><div class="a-name">${esc(a.n)}</div>${info}${hinweis}${istAus && !bearb ? '<div class="aus-label">ausgeblendet</div>' : ''}${a.eigen && !bearb
+        ? `<button class="link eigen-bearb" data-akt="eigenBearb" data-id="${esc(a.nr)}">✏️ Bearbeiten (Gebinde, Einheit, Liefertag)</button>` : ''}</div>
       ${rechts}${tage}
     </div>`;
 }
@@ -1648,8 +1657,12 @@ function zeileSaisonHtml(f, a, aus, bearb) {
 function eigeneLeisteHtml(f) {
   const vorhanden = new Set((S.eigene[f.id] || []).map(e => e.nr));
   const vorschlaege = (f.vorschlaege || []).filter(v => !vorhanden.has(v.nr));
+  const eig = S.eigene[f.id] || [];
   return `<div class="eigene-box">
-    <button class="knopf" data-akt="eigenNeu">＋ Eigenen Artikel anlegen</button>
+    ${eig.length ? `<p class="leise klein" style="margin:0 2px 6px">Deine eigenen Artikel – antippen zum Bearbeiten:</p>
+      ${eig.map(e => `<button class="eigen-zeile" data-akt="eigenBearb" data-id="${esc(e.id)}"><span>✏️ ${esc(e.n)}</span>
+        <small>Gebinde ${esc(zahlKurz(e.inh))} ${esc(peText(e.pe))} · ${esc((f.gruppen[e.gruppe] || {}).name || '')}</small></button>`).join('')}` : ''}
+    <button class="knopf" data-akt="eigenNeu" ${eig.length ? 'style="margin-top:10px"' : ''}>＋ Eigenen Artikel anlegen</button>
     ${vorschlaege.length ? `<p class="leise klein" style="margin:10px 2px 4px">Nicht auf dem roten Blatt (laut Rasting über den Bestpreis):</p>
       ${vorschlaege.map(v => `<button class="link" data-akt="eigenVorschlag" data-nr="${esc(v.nr)}">＋ ${esc(v.n)} (${esc(v.nr)})</button>`).join('<br>')}` : ''}
   </div>`;
@@ -1975,9 +1988,10 @@ function eigenHtml(f, id) {
     <label class="feld"><span>Bezeichnung</span><input id="ea-n" value="${esc(e ? e.n : '')}" placeholder="z. B. Karpfen ausgenommen"></label>
     <label class="feld"><span>Art.-Nr. (falls vorhanden)</span><input id="ea-nr" inputmode="numeric" value="${esc(e ? e.nr : '')}"></label>
     <div class="feld-reihe">
-      <label class="feld"><span>Inhalt je Gebinde</span><input id="ea-inh" inputmode="decimal" value="${e ? zahlKurz(e.inh) : '1'}"></label>
-      <label class="feld"><span>Einheit</span><select id="ea-pe">${['kg', 'St', 'PK'].map(x => `<option value="${x}" ${(e ? e.pe : 'kg') === x ? 'selected' : ''}>${peText(x)}</option>`).join('')}</select></label>
+      <label class="feld"><span>Inhalt je Gebinde</span><input id="ea-inh" inputmode="decimal" value="${e ? String(e.inh).replace('.', ',') : '1'}"></label>
+      <label class="feld"><span>Einheit</span><select id="ea-pe">${[['kg', 'kg'], ['St', 'Stück'], ['PK', 'Packung']].map(([x, t]) => `<option value="${x}" ${(e ? e.pe : 'kg') === x ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
     </div>
+    <p class="leise klein" id="ea-vorschau" style="margin:6px 2px 0">${eaVorschau(e ? e.inh : 1, e ? e.pe : 'kg')}</p>
     <label class="feld"><span>Liefertag</span><select id="ea-gruppe">${Object.entries(f.gruppen).map(([g, x]) =>
       `<option value="${g}" ${(e ? e.gruppe : 'F') === g ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
     <label class="haken"><input type="checkbox" id="ea-mde" ${e && e.mde ? 'checked' : ''}> Steht auf dem roten Sendeblatt (MDE)</label>
@@ -1985,6 +1999,7 @@ function eigenHtml(f, id) {
     <button class="knopf ok" data-akt="eigenSpeichern" data-id="${esc(id || '')}" style="margin-top:12px">Speichern</button>
     ${e ? `<button class="link rot" data-akt="eigenLoeschen" data-id="${esc(id)}" style="margin-top:10px">Artikel löschen</button>` : ''}`;
 }
+const eaVorschau = (inh, pe) => `→ 1 Gebinde = <b>${esc(zahlKurz(inh > 0 ? inh : 1))} ${esc(peText(pe))}</b> · im Zähler bestellst du Gebinde`;
 function eigenSpeichern(f, id) {
   const n = $('#ea-n').value.trim(), nr = $('#ea-nr').value.trim();
   if (!n) { toast('Bitte eine Bezeichnung eintragen.'); return; }
@@ -1992,6 +2007,11 @@ function eigenSpeichern(f, id) {
   const inh = parseZahl($('#ea-inh').value);
   const e = { id: id || 'e' + Date.now().toString(36), n, nr, inh: inh > 0 ? inh : 1, pe: $('#ea-pe').value, gruppe: $('#ea-gruppe').value, mde: $('#ea-mde').checked };
   const liste = (S.eigene[f.id] ||= []), i = liste.findIndex(x => x.id === e.id);
+  /* Einheit gewechselt (kg ↔ Stück/Packung)? Kundenbestellungen mit diesem Artikel passen dann nicht mehr */
+  if (i >= 0 && liste[i].pe !== e.pe) {
+    const betroffen = kundenListe(f).filter(k => (k.pos || []).some(z => z.nr === e.id && !einheitenVon(e).includes(z.e)));
+    if (betroffen.length && !confirm(`Einheit wird ${peText(liste[i].pe)} → ${peText(e.pe)}.\n\n${betroffen.length} Kundenbestellung${betroffen.length > 1 ? 'en enthalten' : ' enthält'} „${n}“ noch in der alten Einheit (${betroffen.map(k => k.name).join(', ')}). Bitte dort die Menge prüfen.\n\nTrotzdem speichern?`)) return;
+  }
   if (i >= 0) liste[i] = e; else liste.push(e);
   const tage = f.gruppen[e.gruppe].tage, mm = S.mengen[f.id] || {};
   for (const k of Object.keys(mm)) if (k.startsWith(e.id + '@') && !tage.includes(tagVon(k))) delete mm[k];
@@ -2129,7 +2149,7 @@ function kfZeileHtml(f, d, z, i) {
       </div>
       <div class="kf-menge">
         <input data-kfm="${i}" type="text" inputmode="decimal" value="${z.m > 0 ? String(z.m).replace('.', ',') : ''}" placeholder="0" aria-label="Menge ${esc(text)}">
-        ${eh.length > 1 ? `<button class="kf-einheit" data-akt="kfEinheit" data-i="${i}" aria-label="Einheit wechseln">${esc(einheitKurz(z.e))}</button>`
+        ${eh.length > 1 || !eh.includes(z.e) ? `<button class="kf-einheit" data-akt="kfEinheit" data-i="${i}" aria-label="Einheit wechseln">${esc(einheitKurz(z.e))}</button>`
           : `<span class="kf-einheit fest">${esc(einheitKurz(z.e))}</span>`}
       </div>
       ${z.ws ? '' : `<button class="mini" data-akt="kfDel" data-i="${i}" aria-label="Zeile entfernen">✕</button>`}
@@ -2477,7 +2497,7 @@ function hilfeHtml() {
       <p>Bei Rasting trägst du unter <b>Artikel</b> je Liefertag die Anzahl <b>Gebinde</b> ein – genau die Zahl, die aufs rote Sendeblatt bzw. ins MDE kommt. Unter jedem Zähler steht, was das in kg (bzw. Stück/Packungen) bedeutet, z. B. 3 Gebinde Lachsfilet Trim D = 15 kg.</p>
       <p>Der <b>Bestellzettel</b> sortiert alles nach Liefertagen, oben läuft der Countdown bis zur Abgabe (Fr 04.12., 12 Uhr). Nach dem Eintippen ins MDE: <b>📟 Per MDE gesendet</b>.</p>
       <p>Änderst du danach Mengen, zeigt die App die Differenz: 🔴 = nachbestellen, 🟠 = weniger als gesendet – mit Anruf-Knopf zu den Ansprechpartnern. Nach dem Telefonat <b>Änderungen telefonisch durchgegeben</b> antippen, dann steht es mit Gesprächspartner im Verlauf.</p>
-      <p><b>Eigene Artikel</b> (z. B. Karpfen über den Bestpreis) legst du unter Artikel ganz unten an.</p></details>
+      <p><b>Eigene Artikel</b> (z. B. Karpfen über den Bestpreis) legst du unter Artikel ganz unten an. Ändern – Gebinde-Inhalt, Einheit, Liefertag, rotes Blatt – mit <b>✏️ Bearbeiten</b> direkt am Artikel oder unten in der Liste „Deine eigenen Artikel“.</p></details>
     <details><summary>👥 Rasting – Kundenbestellungen (Wunschzettel)</summary>
       <p>Reiter <b>Kunden</b> › <b>＋ Wunschzettel erfassen</b>: Die App zeigt den Zettel „Ihre Wünsche“ mit denselben Nummern (1–11). Name oder Kürzel, Zettel-Nr. und Abholtag eintragen, dann die Mengen. <b>g/kg</b> antippen wechselt die Einheit. Was der Kunde auf der Rückseite zusätzlich notiert hat, suchst du unter <b>Weitere Produkte</b> aus dem ganzen Ordersatz.</p>
       <p>Mit <b>Speichern & nächster Zettel</b> geht ein ganzer Stapel schnell. Telefon und Adresse bleiben auf dem Papier.</p>
@@ -2748,6 +2768,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const t = e.target, f = UI.firma;
   if (t.id === 'suche') { UI.suche = t.value; renderListe(); return; }
+  if (t.id === 'ea-inh') { const v = $('#ea-vorschau'); if (v) v.innerHTML = eaVorschau(parseZahl(t.value), $('#ea-pe').value); return; }
   if ((t.matches('[data-min]') || t.matches('[data-ist]')) && f) {
     setBestand(f, t.matches('[data-min]') ? 'min' : 'ist', t.dataset.nr, t.value);
     bestandAktualisieren(f, t.dataset.nr);
@@ -2773,6 +2794,7 @@ document.addEventListener('change', e => {
   const t = e.target, f = UI.firma;
   if (t.matches('[data-menge]')) { setMenge(f, t.dataset.nr, t.value); return; }
   if (t.matches('[data-nurmin]')) { UI.nurMin = t.checked; renderListe(); return; }
+  if (t.id === 'ea-pe') { const v = $('#ea-vorschau'); if (v) v.innerHTML = eaVorschau(parseZahl($('#ea-inh').value), t.value); return; }
   if (t.matches('[data-sichtbar]')) {
     setSichtbar(f, t.dataset.nr, t.checked);
     t.closest('.art').classList.toggle('aus', !t.checked);
